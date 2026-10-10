@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Tests para la Version 2 del servicio.
-Valida los 3 cambios confirmados contra el servicio original.
+Valida el comportamiento actual contra el servicio original.
 """
 import sys
 from pathlib import Path
@@ -26,22 +26,23 @@ def send(msg: str):
     return client.post("/msg", json={"m": msg}, headers=headers)
 
 
-# ─── CAMBIO 1: Saldo formato monetario string ─────────────────────
+# ─── Cambios confirmados ──────────────────────────────────────────
+# V2 no cambia formato de saldo ni ANULA respecto a V1 segun ejemplos oficiales.
+# Los experimentos anteriores fueron mal interpretados.
+
 def test_consulta_saldo_formato_v2():
-    """V2: saldo devuelto como string con 2 decimales, dividido por 100."""
+    """Saldo devuelto como entero."""
     reset()
     send(f"ALTA;Test;{ctrl('ALTA;Test')}")
-    r = send(f"DEPOSITO;AC-0001;250000;{ctrl('DEPOSITO;AC-0001;250000')}")
+    send(f"DEPOSITO;AC-0001;250000;{ctrl('DEPOSITO;AC-0001;250000')}")
+    r = send(f"CONSULTA;AC-0001;{ctrl('CONSULTA;AC-0001')}")
     assert r.status_code == 200
-    r2 = send(f"CONSULTA;AC-0001;{ctrl('CONSULTA;AC-0001')}")
-    assert r2.status_code == 200
-    body = r2.json()
+    body = r.json()
     assert body["cuenta_id"] == "AC-0001"
-    # V2: saldo es string "2500.00" = 250000/100
-    assert body["saldo"] == "2500.00"
+    assert body["saldo"] == 250000
 
 def test_saldo_despues_transfer_v2():
-    """V2: transferencia afecta saldos mostrados en formato monetario."""
+    """Transferencia afecta saldos como enteros."""
     reset()
     send(f"ALTA;A;{ctrl('ALTA;A')}")
     send(f"ALTA;B;{ctrl('ALTA;B')}")
@@ -49,13 +50,11 @@ def test_saldo_despues_transfer_v2():
     send(f"TRANSFER;AC-0001;AC-0002;40000;{ctrl('TRANSFER;AC-0001;AC-0002;40000')}")
     r1 = send(f"CONSULTA;AC-0001;{ctrl('CONSULTA;AC-0001')}")
     r2 = send(f"CONSULTA;AC-0002;{ctrl('CONSULTA;AC-0002')}")
-    assert r1.json()["saldo"] == "2100.00"  # (250000-40000)/100
-    assert r2.json()["saldo"] == "400.00"   # 40000/100
+    assert r1.json()["saldo"] == 210000
+    assert r2.json()["saldo"] == 40000
 
-
-# ─── CAMBIO 2: ANULA siempre devuelve ok:false ────────────────────
-def test_anula_primera_vez_ok_false_v2():
-    """V2: ANULA primera vez devuelve ok:false pero revierte la operacion."""
+def test_anula_primera_vez_ok_true_v2():
+    """ANULA primera vez devuelve ok:true; segunda ok:false."""
     reset()
     send(f"ALTA;A;{ctrl('ALTA;A')}")
     send(f"ALTA;B;{ctrl('ALTA;B')}")
@@ -63,36 +62,36 @@ def test_anula_primera_vez_ok_false_v2():
     r = send(f"TRANSFER;AC-0001;AC-0002;40000;{ctrl('TRANSFER;AC-0001;AC-0002;40000')}")
     assert r.status_code == 200
     op_id = r.json()["operacionId"]
-    # Anular primera vez
+    # Primera vez
     r2 = send(f"ANULA;{op_id};{ctrl(f'ANULA;{op_id}')}")
     assert r2.status_code == 200
-    body = r2.json()
-    # V2: siempre ok:false
-    assert body["ok"] is False
-    assert body["motivo"] == "ya anulada"
-    # Pero los saldos se revirtieron
+    assert r2.json()["ok"] is True
+    assert r2.json()["anulada"] == op_id
+    # Saldos revertidos
     r3 = send(f"CONSULTA;AC-0001;{ctrl('CONSULTA;AC-0001')}")
     r4 = send(f"CONSULTA;AC-0002;{ctrl('CONSULTA;AC-0002')}")
-    assert r3.json()["saldo"] == "2500.00"  # Volvio al valor pre-transfer
-    assert r4.json()["saldo"] == "0.00"
+    assert r3.json()["saldo"] == 250000
+    assert r4.json()["saldo"] == 0
+    # Segunda vez
+    r5 = send(f"ANULA;{op_id};{ctrl(f'ANULA;{op_id}')}")
+    assert r5.json()["ok"] is False
+    assert r5.json()["motivo"] == "ya anulada"
 
 def test_anula_deposito_v2():
-    """V2: ANULA de DEPOSITO devuelve ok:false pero revierte."""
+    """ANULA de DEPOSITO devuelve ok:true y revierte."""
     reset()
     send(f"ALTA;A;{ctrl('ALTA;A')}")
     r = send(f"DEPOSITO;AC-0001;10000;{ctrl('DEPOSITO;AC-0001;10000')}")
     assert r.status_code == 200
     op_id = r.json()["operacionId"]
-    # Anular
     r2 = send(f"ANULA;{op_id};{ctrl(f'ANULA;{op_id}')}")
     assert r2.status_code == 200
-    assert r2.json()["ok"] is False
-    # Saldo revertido
+    assert r2.json()["ok"] is True
     r3 = send(f"CONSULTA;AC-0001;{ctrl('CONSULTA;AC-0001')}")
-    assert r3.json()["saldo"] == "0.00"
+    assert r3.json()["saldo"] == 0
 
 
-# ─── CAMBIO 3: Errores y validaciones ──────────────────────────────
+# ─── Errores y validaciones ───────────────────────────────────────
 def test_comandos_desconocido_v2():
     reset()
     r = send("SALDOS;AC-0001;38")
@@ -113,13 +112,12 @@ def test_aridad_invalida_v2():
 
 def test_control_mal_formado_v2():
     reset()
-    send(f"ALTA;A;{ctrl('ALTA;A')}")
     r = send("DEPOSITO;AC-0001;700;5X")
     assert r.status_code == 400
     assert r.json()["error"] == "E201"
 
 
-# ─── Regresión: comportamientos que siguen igual ───────────────────
+# ─── Regresion ────────────────────────────────────────────────────
 def test_ping_v2():
     reset()
     for c in ["64", "0", "99"]:
@@ -148,9 +146,9 @@ def test_auth_v2():
     assert r2.status_code == 401
 
 
-# ─── Regresión: 20 ejemplos originales (adaptados a V2) ─────────────
+# ─── 20 ejemplos originales ───────────────────────────────────────
 def test_ejemplos_originales_v2():
-    """Reproduce los 20 ejemplos originales adaptando saldos a formato V2."""
+    """Reproduce los 20 ejemplos originales sin adaptaciones."""
     import json
     ejemplos = Path(__file__).parent.parent / "pruebas" / "ejemplos.jsonl"
     reset()
@@ -166,22 +164,6 @@ def test_ejemplos_originales_v2():
             r = send(msg)
             actual_status = r.status_code
             actual_body = r.json()
-
-            # Adaptar saldo de V1 a V2
-            if isinstance(expected_body, dict) and "saldo" in expected_body:
-                expected_saldo = expected_body["saldo"]
-                # V2: saldo como string monetario
-                if isinstance(expected_saldo, int):
-                    expected_body = dict(expected_body)
-                    expected_body["saldo"] = f"{expected_saldo / 100:.2f}"
-
-            # Adaptar ANULA de V1 a V2
-            if isinstance(expected_body, dict) and expected_body.get("ok") is True:
-                expected_body = dict(expected_body)
-                expected_body["ok"] = False
-                if "anulada" in expected_body:
-                    del expected_body["anulada"]
-                expected_body["motivo"] = "ya anulada"
 
             match = actual_status == expected_status
             if isinstance(actual_body, dict) and isinstance(expected_body, dict):
