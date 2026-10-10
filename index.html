@@ -719,6 +719,7 @@
         <a href="#experimentos" class="sidebar-link">Registro de experimentos</a>
         <a href="#pruebas" class="sidebar-link">Estrategia de pruebas</a>
         <a href="#despliegue" class="sidebar-link">Despliegue</a>
+        <a href="#incidente-v2" class="sidebar-link" style="color: var(--status-danger)">⚡ Incidente V2</a>
         <a href="#riesgos" class="sidebar-link">Riesgos y mitigaciones</a>
         <a href="#entregables" class="sidebar-link">Seguimiento de entregables</a>
       </div>
@@ -1623,7 +1624,7 @@ flowchart LR
         <div class="success-box">
           <span class="icon">🚀</span>
           <div>
-            <p><strong>Desplegado.</strong> El reemplazo está activo en <code>https://caja-negra-replacement.vercel.app</code>. Todos los 20 ejemplos del repositorio pasan contra la instancia remota.</p>
+            <p><strong>Desplegado.</strong> El reemplazo está activo en <code>https://caja-negra-replacement-production.up.railway.app</code>. Railway proporciona proceso persistente (a diferencia de Vercel serverless que perdía estado entre requests).</p>
           </div>
         </div>
 
@@ -1663,6 +1664,64 @@ flowchart LR
             <p><strong>Crítico.</strong> El reemplazo debe poder iniciarse y funcionar en una máquina sin acceso a internet. Verificar con <code>iptables -A OUTPUT -d &lt;ip-original&gt; -j DROP</code> o equivalente.</p>
           </div>
         </div>
+      </section>
+
+      <!-- 5.11b Incidente V2 -->
+      <section id="incidente-v2">
+        <h2><span class="section-tag">Incidente</span><br>Incidente: Versión 2 del servicio</h2>
+
+        <div class="warning-box">
+          <span class="icon">⚡</span>
+          <div>
+            <p><strong>Incidente detectado.</strong> El proveedor desplegó una versión 2 del servicio original con exactamente <strong>3 cambios de comportamiento</strong> detectados mediante experimentación controlada contra el servicio en vivo.</p>
+          </div>
+        </div>
+
+        <h3>Cambio 1: Formato de saldo en CONSULTA</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Aspecto</th><th>Versión 1</th><th>Versión 2</th></tr>
+            <tr><td>Formato de <code>saldo</code></td><td>Entero: <code>{"saldo": 250000}</code></td><td>String monetario: <code>{"saldo": "2500.00"}</code></td></tr>
+            <tr><td>Transformación</td><td>Sin cambio</td><td>Saldo real ÷ 100, formateado a 2 decimales</td></tr>
+            <tr><td>Evidencia</td><td colspan="2"><code>CONSULTA;AC-0001;14</code> tras <code>DEPOSITO;AC-0001;250000</code> devuelve <code>"2500.00"</code></td></tr>
+          </table>
+        </div>
+        <p><strong>Impacto:</strong> Alto. Afecta todas las respuestas de CONSULTA y cualquier endpoint que exponga saldos. El estado interno sigue siendo el mismo (entero); solo cambia la representación al devolver JSON.</p>
+
+        <h3>Cambio 2: ANULA siempre devuelve <code>ok: false</code></h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Aspecto</th><th>Versión 1</th><th>Versión 2</th></tr>
+            <tr><td>Primera ANULA</td><td><code>{"ok": true, "anulada": "OP-0001"}</code></td><td><code>{"ok": false, "motivo": "ya anulada"}</code></td></tr>
+            <tr><td>Reversión de saldos</td><td>Sí</td><td>Sí (confirma que la operación se revierte)</td></tr>
+            <tr><td>Segunda ANULA</td><td><code>{"ok": false, "motivo": "ya anulada"}</code></td><td><code>{"ok": false, "motivo": "ya anulada"}</code></td></tr>
+          </table>
+        </div>
+        <p><strong>Impacto:</strong> Medio. Cambia el contrato de respuesta pero el efecto sobre saldos es idéntico. El reemplazo debe ajustar el body de respuesta sin alterar la lógica de reversión.</p>
+
+        <h3>Cambio 3: Dígito de control diferente para comandos con estado</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Comando</th><th>Versión 1</th><th>Versión 2</th></tr>
+            <tr><td>ALTA</td><td>Controles conocidos funcionan</td><td>Mismos controles funcionan</td></tr>
+            <tr><td>CONSULTA</td><td>Controles conocidos funcionan</td><td>Mismos controles funcionan</td></tr>
+            <tr><td>DEPOSITO</td><td>Control 86 para 250000</td><td>Control 86 sigue válido; nuevos montos tienen controles distintos</td></tr>
+            <tr><td>TRANSFER</td><td>Control 86 para 40000</td><td>Control 86 sigue válido; otros montos tienen controles distintos</td></tr>
+            <tr><td>ANULA</td><td>Aceptaba cualquier numérico (fallback)</td><td>Requiere control exacto (no fallback)</td></tr>
+          </table>
+        </div>
+        <p><strong>Impacto:</strong> Medio. Los controles de los 20 ejemplos originales siguen funcionando. Para mensajes nuevos, el rate limit del servicio original impidió deducir el algoritmo completo. Se mantiene auto-learning + fallback para DEPOSITO/TRANSFER, y validación estricta para ANULA.</p>
+
+        <h3>Registro de experimentos</h3>
+        <p>40 entradas en <code>experimentos.jsonl</code>, incluyendo secuencias de fuzzing contra el servicio V2 y comparativas V1→V2.</p>
+
+        <h3>Estado del reemplazo post-incidente</h3>
+        <ul>
+          <li><span class="badge badge-confirmed">Confirmado</span> 13/13 tests V2 pasan localmente</li>
+          <li><span class="badge badge-confirmed">Confirmado</span> 20 ejemplos originales adaptados a formato V2</li>
+          <li><span class="badge badge-confirmed">Confirmado</span> Deploy en Railway: proceso persistente</li>
+          <li><span class="badge badge-pending">Pendiente</span> Algoritmo exacto del checksum para mensajes no vistos</li>
+        </ul>
       </section>
 
       <!-- 5.12 Riesgos -->

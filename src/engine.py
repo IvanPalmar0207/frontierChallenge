@@ -34,7 +34,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
             return body, status
         cuenta = state.cuentas[cuenta_id]
         learn_control(comando, args, control)
-        return {"cuenta_id": cuenta.cuenta_id, "saldo": cuenta.saldo}, 200
+        return {"cuenta_id": cuenta.cuenta_id, "saldo": f"{cuenta.saldo / 100:.2f}"}, 200
 
     if comando == "DEPOSITO":
         cuenta_id = args[0]
@@ -77,18 +77,19 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
     if comando == "ANULA":
         op_id = args[0]
         if op_id not in state.operaciones:
-            # Comportamiento por definir: ¿error o ok:false?
+            # V2: ANULA siempre devuelve ok:false, incluso si op no existe o ya anulada
+            # Pero SOLO revierte si la op existe y está activa
             return {"ok": False, "motivo": "ya anulada"}, 200
         op = state.operaciones[op_id]
-        if not op.activa:
-            return {"ok": False, "motivo": "ya anulada"}, 200
-        op.activa = False
-        if op.tipo == "TRANSFER":
-            state.cuentas[op.cuenta_origen].saldo += op.monto
-            state.cuentas[op.cuenta_destino].saldo -= op.monto
-        elif op.tipo == "DEPOSITO":
-            state.cuentas[op.cuenta_origen].saldo -= op.monto
+        # V2: Siempre devuelve ok:false, pero revierte si está activa
+        if op.activa:
+            op.activa = False
+            if op.tipo == "TRANSFER":
+                state.cuentas[op.cuenta_origen].saldo += op.monto
+                state.cuentas[op.cuenta_destino].saldo -= op.monto
+            elif op.tipo == "DEPOSITO":
+                state.cuentas[op.cuenta_origen].saldo -= op.monto
         learn_control(comando, args, control)
-        return {"ok": True, "anulada": op_id}, 200
+        return {"ok": False, "motivo": "ya anulada"}, 200
 
     return error_response("E301")
