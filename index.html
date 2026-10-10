@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Black Box — Behavioral Replication | Frontier Lab10</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0B0F19;
+      --bg-secondary: #111827;
+      --bg-tertiary: #151b2b;
+      --bg-elevated: #1a2332;
+      --bg-code: #0f172a;
+      --text-primary: #E2E8F0;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --border-color: rgba(148, 163, 184, 0.1);
+      --border-subtle: rgba(148, 163, 184, 0.06);
+      --accent-primary: #6366F1;
+      --accent-secondary: #22D3EE;
+      --accent-glow: rgba(99, 102, 241, 0.15);
+      --status-proposed: #F59E0B;
+      --status-pending: #3B82F6;
+      --status-confirmed: #10B981;
+      --status-danger: #EF4444;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --radius: 10px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -4px rgba(0,0,0,0.3);
+      --transition: 0.2s ease;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+    /* Top Bar */
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(11, 15, 25, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1000;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .topbar-brand .logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: white;
+    }
+
+    .topbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .topbar-nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+
+    .topbar-nav a:hover { color: var(--text-primary); }
+
+    .phase-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: var(--status-proposed);
+    }
+
+    .phase-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr 240px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding-top: 60px;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 60px; left: 0;
+      width: 260px;
+      height: calc(100vh - 60px);
+      background: var(--bg-primary);
+      border-right: 1px solid var(--border-color);
+      padding: 20px 16px;
+      overflow-y: auto;
+      z-index: 900;
+    }
+
+    .sidebar-group { margin-bottom: 24px; }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 0 12px 8px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-link {
+      display: block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all var(--transition);
+      border-left: 2px solid transparent;
+    }
+
+    .sidebar-link:hover {
+      color: var(--text-primary);
+      background: var(--bg-elevated);
+    }
+
+    .sidebar-link.active {
+      color: var(--accent-primary);
+      background: var(--accent-glow);
+      border-left-color: var(--accent-primary);
+    }
+
+    /* Main Content */
+    .main {
+      grid-column: 2;
+      padding: 40px 48px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .right-toc {
+      grid-column: 3;
+      position: fixed;
+      top: 80px;
+      right: 0;
+      width: 240px;
+      padding: 0 24px;
+      overflow-y: auto;
+      max-height: calc(100vh - 100px);
+    }
+
+    .right-toc-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .right-toc a {
+      display: block;
+      padding: 4px 0;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 12px;
+      transition: color var(--transition);
+      border-left: 2px solid transparent;
+      padding-left: 10px;
+    }
+
+    .right-toc a:hover { color: var(--text-secondary); }
+    .right-toc a.active { color: var(--accent-primary); border-left-color: var(--accent-primary); }
+
+    /* Typography */
+    h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; }
+
+    h1 { font-size: 36px; margin-bottom: 16px; }
+    h2 { font-size: 24px; margin-top: 48px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
+    h3 { font-size: 18px; margin-top: 32px; margin-bottom: 12px; color: var(--text-primary); }
+    h4 { font-size: 15px; margin-top: 24px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 600; }
+
+    p { margin-bottom: 14px; color: var(--text-secondary); }
+    p strong { color: var(--text-primary); font-weight: 600; }
+
+    a { color: var(--accent-secondary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { margin-bottom: 14px; padding-left: 24px; color: var(--text-secondary); }
+    li { margin-bottom: 6px; }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-proposed { background: rgba(245, 158, 11, 0.15); color: var(--status-proposed); }
+    .badge-pending { background: rgba(59, 130, 246, 0.15); color: var(--status-pending); }
+    .badge-confirmed { background: rgba(16, 185, 129, 0.15); color: var(--status-confirmed); }
+    .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--status-danger); }
+
+    /* Cards */
+    .card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color var(--transition);
+    }
+
+    .card:hover { border-color: var(--border-color); }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .card p { font-size: 14px; margin-bottom: 0; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: var(--bg-elevated);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    td { color: var(--text-secondary); }
+    tr:hover td { background: var(--bg-elevated); }
+
+    /* Code */
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--bg-code);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    pre code {
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    pre:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .checklist li:last-child { border-bottom: none; }
+
+    .check-box {
+      width: 18px; height: 18px;
+      border: 2px solid var(--text-muted);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .check-box.checked {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      position: relative;
+    }
+
+    .check-box.checked::after {
+      content: '✓';
+      color: white;
+      font-size: 11px;
+      position: absolute;
+      top: -1px; left: 3px;
+    }
+
+    /* Warning box */
+    .warning-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .warning-box .icon { font-size: 18px; flex-shrink: 0; }
+    .warning-box p { margin-bottom: 0; font-size: 14px; }
+    .warning-box strong { color: var(--status-proposed); }
+
+    /* Info box */
+    .info-box {
+      background: rgba(34, 211, 238, 0.08);
+      border: 1px solid rgba(34, 211, 238, 0.2);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .info-box .icon { font-size: 18px; flex-shrink: 0; }
+    .info-box p { margin-bottom: 0; font-size: 14px; }
+    .info-box strong { color: var(--accent-secondary); }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 48px 0 32px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .hero .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 20px;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Roadmap */
+    .roadmap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin: 24px 0 8px;
+      flex-wrap: wrap;
+    }
+
+    .roadmap-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      min-width: 140px;
+    }
+
+    .roadmap-step .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      border: 2px solid;
+    }
+
+    .roadmap-step .step-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .roadmap-step .step-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .roadmap-step.active .step-number {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: white;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .roadmap-step.active .step-label { color: var(--accent-primary); }
+    .roadmap-step.active .step-status {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--status-proposed);
+    }
+
+    .roadmap-step.pending .step-number {
+      background: transparent;
+      border-color: var(--text-muted);
+      color: var(--text-muted);
+    }
+
+    .roadmap-step.pending .step-label { color: var(--text-muted); }
+    .roadmap-step.pending .step-status {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--text-muted);
+    }
+
+    .roadmap-connector {
+      width: 40px;
+      height: 2px;
+      background: var(--border-color);
+      margin-top: -20px;
+    }
+
+    .roadmap-step.active + .roadmap-connector,
+    .roadmap-connector:has(+ .roadmap-step.active) {
+      background: linear-gradient(90deg, var(--accent-primary), var(--border-color));
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-item {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      transition: border-color var(--transition);
+    }
+
+    .stat-item:hover { border-color: var(--border-color); }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent-primary);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* Mermaid */
+    .mermaid {
+      background: var(--bg-tertiary);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* SVG Architecture Diagram */
+    .svg-diagram {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+
+    .svg-diagram svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 60px;
+      padding: 24px 0;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .right-toc { display: none; }
+      .layout { grid-template-columns: 260px 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        width: 280px;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 850;
+      }
+      .sidebar-overlay.open { display: block; }
+      .mobile-menu-btn { display: block; }
+      .main { padding: 24px; }
+      .topbar-nav { display: none; }
+      .hero h1 { font-size: 28px; }
+      .hero .subtitle { font-size: 15px; }
+      .roadmap { flex-direction: column; gap: 8px; }
+      .roadmap-connector { display: none; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-primary);
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="logo">B</div>
+      <span>Black Box</span>
+    </div>
+    <nav class="topbar-nav">
+      <a href="#resumen">Resumen</a>
+      <a href="#arquitectura">Arquitectura</a>
+      <a href="#especificacion">Especificación</a>
+      <a href="#entregables">Entregables</a>
+    </nav>
+    <div class="phase-badge">
+      <span class="dot"></span>
+      Fase 1 · System Design & Discovery
+    </div>
+  </header>
+
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-group">
+        <div class="sidebar-title">Contenido</div>
+        <a href="#resumen" class="sidebar-link">Portada y resumen</a>
+        <a href="#alcance" class="sidebar-link">Alcance y requisitos</a>
+        <a href="#arquitectura" class="sidebar-link">Arquitectura general</a>
+        <a href="#diagrama-arq" class="sidebar-link">Diagrama de arquitectura</a>
+        <a href="#diseno" class="sidebar-link">Diseño del sistema</a>
+        <a href="#secuencia" class="sidebar-link">Diagrama de secuencia</a>
+        <a href="#ingenieria" class="sidebar-link">Ingeniería inversa</a>
+        <a href="#especificacion" class="sidebar-link">Especificación</a>
+        <a href="#experimentos" class="sidebar-link">Registro de experimentos</a>
+        <a href="#pruebas" class="sidebar-link">Estrategia de pruebas</a>
+        <a href="#despliegue" class="sidebar-link">Despliegue</a>
+        <a href="#riesgos" class="sidebar-link">Riesgos y mitigaciones</a>
+        <a href="#entregables" class="sidebar-link">Seguimiento de entregables</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-title">Estado</div>
+        <a href="#" class="sidebar-link" style="color: var(--status-proposed)">● Propuesto</a>
+        <a href="#" class="sidebar-link" style="color: var(--status-pending)">● Pendiente</a>
+        <a href="#" class="sidebar-link" style="color: var(--status-confirmed)">● Confirmado</a>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <!-- 5.1 Portada -->
+      <section id="resumen">
+        <div class="hero">
+          <h1>Black Box — Behavioral Replication</h1>
+          <p class="subtitle">Ingeniería inversa experimental y construcción de un reemplazo compatible con un servicio heredado sin documentación.</p>
+          <div class="hero-meta">
+            <span class="meta-tag">🔬 Reverse Engineering</span>
+            <span class="meta-tag">🚀 FastAPI</span>
+            <span class="meta-tag">📊 Equivalence Testing</span>
+            <span class="meta-tag">⚡ Frontier Lab10</span>
+          </div>
+
+          <!-- Roadmap -->
+          <div class="roadmap">
+            <div class="roadmap-step active">
+              <div class="step-number">1</div>
+              <div class="step-label">Discovery</div>
+              <div class="step-status">En curso</div>
+            </div>
+            <div class="roadmap-connector"></div>
+            <div class="roadmap-step pending">
+              <div class="step-number">2</div>
+              <div class="step-label">Build</div>
+              <div class="step-status">Pendiente</div>
+            </div>
+            <div class="roadmap-connector"></div>
+            <div class="roadmap-step pending">
+              <div class="step-number">3</div>
+              <div class="step-label">Deploy & Validate</div>
+              <div class="step-status">Pendiente</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">20</div>
+            <div class="stat-label">Ejemplos analizados</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">6</div>
+            <div class="stat-label">Comandos identificados</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">7</div>
+            <div class="stat-label">Errores catalogados</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">1</div>
+            <div class="stat-label">Algoritmo por descubrir</div>
+          </div>
+        </div>
+
+        <!-- Challenge Metadata -->
+        <div class="info-box">
+          <span class="icon">📋</span>
+          <div>
+            <p><strong>Reto:</strong> Frontier Lab10 · Reto 2 — La caja negra</p>
+            <p style="margin-top:4px"><strong>Servicio original:</strong> <code>https://caja-negra-production-c64f.up.railway.app</code></p>
+            <p style="margin-top:4px"><strong>Reemplazo desplegado:</strong> <code>https://caja-negra-replacement.vercel.app</code></p>
+            <p style="margin-top:4px"><strong>Protocolo:</strong> HTTP POST /msg con body JSON <code>{"m": "COMANDO;arg1;...;control"}</code></p>
+            <p style="margin-top:4px"><strong>Autenticación:</strong> <code>Authorization: Bearer &lt;token&gt;</code></p>
+          </div>
+        </div>
+
+        <div class="warning-box">
+          <span class="icon">✅</span>
+          <div>
+            <p><strong>20/20 ejemplos reproducidos.</strong> Los comportamientos base del servicio original han sido confirmados contra el reemplazo desplegado. Los controles no vistos en los ejemplos aún dependen de la fórmula por descubrir (marcados <span class="badge badge-proposed">Propuesto</span>).</p>
+          </div>
+        </div>
+
+        <h2><span class="section-tag">Sección 01</span><br>Portada y resumen ejecutivo</h2>
+
+        <div class="card">
+          <div class="card-title">Contexto del reto</div>
+          <p>Heredamos un servicio que lleva diez años en producción. No existe código fuente ni documentación, y las dos personas que lo desarrollaron ya no están disponibles. Sabemos que recibe mensajes y devuelve respuestas. Si se apaga, la empresa deja de funcionar.</p>
+        </div>
+
+        <h3>Objetivo principal</h3>
+        <p>Comprender el comportamiento observable del servicio y construir un <strong>reemplazo que responda exactamente igual</strong> que el original, incluidos sus errores y casos límite.</p>
+
+        <h3>Problema de negocio</h3>
+        <p>La dependencia de un sistema opaco representa un riesgo crítico. Cualquier fallo o necesidad de migración es imposible de planificar sin conocer el contrato real del servicio.</p>
+
+        <h3>Enfoque de solución</h3>
+        <ol>
+          <li><strong>Investigación controlada:</strong> enviar entradas al servicio original, registrar salidas exactas.</li>
+          <li><strong>Análisis sistemático:</strong> deducir reglas a partir de observaciones, no suposiciones.</li>
+          <li><strong>Especificación:</strong> documentar cada comportamiento con evidencia y nivel de confianza.</li>
+          <li><strong>Implementación independiente:</strong> construir reemplazo sin llamar al original.</li>
+          <li><strong>Validación diferencial:</strong> comparar reemplazo vs. original secuencia por secuencia.</li>
+        </ol>
+
+        <h3>Restricciones principales</h3>
+        <ul>
+          <li>No utilizar herramientas que hagan la ingeniería inversa automáticamente.</li>
+          <li>Scripts y fuzzers propios sí están permitidos.</li>
+          <li>El reemplazo <strong>no puede invocar</strong> al servicio original ni a otro reemplazo.</li>
+          <li>La solución debe entregarse desplegada y accesible desde internet.</li>
+        </ul>
+
+        <h3>Entregables esperados</h3>
+        <ul>
+          <li>Reemplazo del servicio desplegado.</li>
+          <li>Especificación del comportamiento observado.</li>
+          <li>Registro de experimentos (<code>experimentos.jsonl</code>).</li>
+        </ul>
+      </section>
+
+      <!-- 5.2 Alcance -->
+      <section id="alcance">
+        <h2><span class="section-tag">Sección 02</span><br>Alcance y requisitos</h2>
+
+        <h3>Requisitos funcionales</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>ID</th><th>Requisito</th><th>Estado</th></tr>
+            <tr><td>RF-01</td><td>Recibir mensajes conforme al contrato real del servicio</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>RF-02</td><td>Procesar entradas sin depender del servicio original durante ejecución</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>RF-03</td><td>Devolver respuestas compatibles con las observadas</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>RF-04</td><td>Reproducir errores y casos límite cuando exista evidencia</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>RF-05</td><td>Permitir validación de compatibilidad mediante pruebas automatizadas</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+          </table>
+        </div>
+
+        <h3>Requisitos no funcionales</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>ID</th><th>Requisito</th><th>Estado</th></tr>
+            <tr><td>RNF-01</td><td>Independencia del servicio original durante la ejecución del reemplazo</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>RNF-02</td><td>Reproducibilidad de los experimentos (misma entrada → mismo resultado)</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>RNF-03</td><td>Trazabilidad entre observaciones y especificación</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>RNF-04</td><td>Facilidad para incorporar nuevos hallazgos sin refactor masivo</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>RNF-05</td><td>Validación automatizada del comportamiento conocido</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>RNF-06</td><td>Preparación para despliegue conforme a instrucciones oficiales</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+          </table>
+        </div>
+
+        <div class="warning-box">
+          <span class="icon">ℹ️</span>
+          <div>
+            <p>Los formatos de mensajes, los límites de rendimiento y los objetivos de disponibilidad se definirán cuando exista evidencia experimental o instrucciones oficiales del reto.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5.3 Arquitectura general -->
+      <section id="arquitectura">
+        <h2><span class="section-tag">Sección 03</span><br>Arquitectura general</h2>
+
+        <p>La arquitectura se divide en dos entornos aislados: uno de <strong>investigación</strong> (habla al servicio original) y otro de <strong>reemplazo</strong> (nunca habla al original). Esta barrera es un requisito de contención arquitectónica, no solo de despliegue.</p>
+
+        <h3>Entorno de investigación</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Componente</th><th>Responsabilidad</th><th>Estado</th></tr>
+            <tr><td>Ejecutor de experimentos</td><td>Envía entradas controladas al servicio original</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Generador de casos de prueba</td><td>Crea mutaciones sistemáticas de entradas conocidas</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Cliente de interacción</td><td>HTTP client con autenticación y manejo de rate limits</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Capturador</td><td>Registra request, response, status, headers, latencia</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Registro</td><td>Persiste experimentos en <code>experimentos.jsonl</code></td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Analizador de diferencias</td><td>Compara respuestas para inferir reglas</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Especificador</td><td>Traduce hallazgos en reglas verificables</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+          </table>
+        </div>
+
+        <h3>Entorno del reemplazo</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Componente</th><th>Responsabilidad</th><th>Estado</th></tr>
+            <tr><td>Adaptador de entrada</td><td>Recibe requests conforme al protocolo descubierto</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Validador y normalizador</td><td>Verifica formato, aridad y checksum si aplica</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Motor de comportamiento</td><td>Ejecuta la lógica derivada de la especificación</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>Módulos de reglas</td><td>Implementan cada comando descubierto (PING, ALTA, etc.)</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>Adaptador de salida</td><td>Formatea la respuesta conforme al contrato observado</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>Manejo de errores</td><td>Replica status y cuerpo exacto de errores del original</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>Suite de pruebas</td><td>Valida equivalencia contra referencias capturadas</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+          </table>
+        </div>
+
+        <p>Estos módulos representan una <strong>propuesta lógica</strong>. Pueden combinarse o simplificarse según lo que revele el protocolo real.</p>
+      </section>
+
+      <!-- 5.4 Diagrama de arquitectura -->
+      <section id="diagrama-arq">
+        <h2><span class="section-tag">Sección 04</span><br>Diagrama de arquitectura</h2>
+
+        <p>Diagrama de alta disponibilidad renderizado como SVG nativo (no requiere conexión ni Mermaid).</p>
+
+        <div class="svg-diagram">
+                                        <svg viewBox="0 0 1100 700" width="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad-research" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6366F1" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.08"/>
+              </linearGradient>
+              <linearGradient id="grad-replace" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#10B981" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.08"/>
+              </linearGradient>
+              <linearGradient id="grad-validate" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#EF4444" stop-opacity="0.08"/>
+              </linearGradient>
+              <linearGradient id="grad-spec" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.15"/>
+                <stop offset="100%" stop-color="#A78BFA" stop-opacity="0.08"/>
+              </linearGradient>
+              <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+              </filter>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8"/>
+              </marker>
+              <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366F1"/>
+              </marker>
+              <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#EF4444"/>
+              </marker>
+            </defs>
+
+            <!-- Title -->
+            <text x="550" y="20" text-anchor="middle" fill="#E2E8F0" font-size="15" font-weight="700" font-family="Inter, sans-serif">Arquitectura — Investigación, Reemplazo, Validación y Tráfico Real</text>
+
+            <!-- ==================== RESEARCH BOX ==================== -->
+            <rect x="30" y="55" width="330" height="250" rx="10" fill="url(#grad-research)" stroke="rgba(99,102,241,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+            <text x="195" y="82" text-anchor="middle" fill="#6366F1" font-size="12" font-weight="700" font-family="Inter, sans-serif">ENTORNO DE INVESTIGACIÓN</text>
+
+            <rect x="50" y="95" width="145" height="42" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="122" y="115" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Ejecutor + Controles</text>
+            <text x="122" y="128" text-anchor="middle" fill="#64748B" font-size="8" font-family="Inter, sans-serif">rate · tokens · reset · orden</text>
+
+            <rect x="210" y="95" width="130" height="42" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="275" y="121" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Capturador</text>
+
+            <rect x="50" y="150" width="145" height="42" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="122" y="170" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Fuzzer</text>
+            <text x="122" y="183" text-anchor="middle" fill="#64748B" font-size="8" font-family="Inter, sans-serif">fuzzing diferencial</text>
+
+            <rect x="210" y="150" width="130" height="42" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="275" y="167" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Analizador +</text>
+            <text x="275" y="180" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Clasificador</text>
+
+            <rect x="50" y="205" width="145" height="36" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="122" y="222" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Investigación de estado</text>
+            <text x="122" y="233" text-anchor="middle" fill="#64748B" font-size="7" font-family="Inter, sans-serif">token · sesión · contadores · tiempo</text>
+
+            <rect x="210" y="205" width="130" height="36" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="275" y="222" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Gestor de hipótesis</text>
+            <text x="275" y="233" text-anchor="middle" fill="#64748B" font-size="7" font-family="Inter, sans-serif">hipótesis → experimento → refinada</text>
+
+            <rect x="85" y="252" width="220" height="30" rx="6" fill="#0f172a" stroke="rgba(99,102,241,0.3)" stroke-width="1.5"/>
+            <text x="195" y="270" text-anchor="middle" fill="#22D3EE" font-size="9" font-weight="600" font-family="JetBrains Mono, monospace">experimentos.jsonl (hipotesis_id)</text>
+
+            <!-- ==================== ORIGINAL BOX ==================== -->
+            <rect x="390" y="55" width="180" height="250" rx="10" fill="#151b2b" stroke="rgba(245,158,11,0.4)" stroke-width="2" stroke-dasharray="6 4" filter="url(#shadow)"/>
+            <text x="480" y="82" text-anchor="middle" fill="#F59E0B" font-size="12" font-weight="700" font-family="Inter, sans-serif">SERVICIO ORIGINAL</text>
+            <text x="480" y="115" text-anchor="middle" fill="#64748B" font-size="11" font-family="Inter, sans-serif">Caja negra</text>
+            <text x="480" y="140" text-anchor="middle" fill="#64748B" font-size="10" font-family="JetBrains Mono, monospace">caja-negra.railway.app</text>
+            <text x="480" y="200" text-anchor="middle" fill="#64748B" font-size="9" font-style="italic" font-family="Inter, sans-serif">No tocar durante ejecución</text>
+            <text x="480" y="220" text-anchor="middle" fill="#64748B" font-size="9" font-style="italic" font-family="Inter, sans-serif">del reemplazo</text>
+
+            <!-- ==================== BARRIER ==================== -->
+            <text x="595" y="42" text-anchor="middle" fill="#EF4444" font-size="10" font-weight="700" font-family="Inter, sans-serif">BARRERA DE CONTENCIÓN</text>
+            <line x1="595" y1="55" x2="595" y2="305" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6 3"/>
+            <text x="590" y="62" text-anchor="end" fill="#EF4444" font-size="10" font-family="Inter, sans-serif">X</text>
+            <text x="600" y="62" text-anchor="start" fill="#EF4444" font-size="10" font-family="Inter, sans-serif">X</text>
+            <text x="590" y="298" text-anchor="end" fill="#EF4444" font-size="10" font-family="Inter, sans-serif">X</text>
+            <text x="600" y="298" text-anchor="start" fill="#EF4444" font-size="10" font-family="Inter, sans-serif">X</text>
+
+            <!-- ==================== REPLACEMENT BOX ==================== -->
+            <rect x="620" y="55" width="450" height="250" rx="10" fill="url(#grad-replace)" stroke="rgba(16,185,129,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+            <text x="845" y="82" text-anchor="middle" fill="#10B981" font-size="12" font-weight="700" font-family="Inter, sans-serif">ENTORNO DEL REEMPLAZO</text>
+
+            <rect x="640" y="95" width="120" height="38" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="700" y="121" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Router</text>
+
+            <rect x="780" y="95" width="120" height="38" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="840" y="121" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Parser</text>
+
+            <rect x="920" y="95" width="120" height="38" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="980" y="121" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Motor</text>
+
+            <rect x="640" y="150" width="120" height="38" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="700" y="176" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Validador</text>
+
+            <rect x="780" y="150" width="120" height="38" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="840" y="176" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Errores</text>
+
+            <rect x="920" y="142" width="120" height="40" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="980" y="162" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Estado</text>
+            <text x="980" y="174" text-anchor="middle" fill="#64748B" font-size="7" font-family="Inter, sans-serif">modelo derivado</text>
+
+            <rect x="830" y="200" width="210" height="32" rx="6" fill="#0f172a" stroke="rgba(16,185,129,0.3)" stroke-width="1.5"/>
+            <text x="935" y="220" text-anchor="middle" fill="#10B981" font-size="10" font-weight="600" font-family="Inter, sans-serif">dict[token, Estado]</text>
+
+            <!-- ==================== ARROWS: Invest <-> Original ==================== -->
+            <line x1="360" y1="125" x2="390" y2="125" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <text x="375" y="117" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="Inter, sans-serif">POST /msg</text>
+
+            <line x1="390" y1="185" x2="360" y2="185" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <text x="375" y="177" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="Inter, sans-serif">response</text>
+
+            <line x1="195" y1="177" x2="390" y2="155" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow)"/>
+            <text x="290" y="148" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Inter, sans-serif">entradas generadas</text>
+
+            <!-- ==================== ESPECIFICACIÓN VERSIONADA ==================== -->
+            <rect x="30" y="360" width="330" height="120" rx="10" fill="url(#grad-spec)" stroke="rgba(139,92,246,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+            <text x="195" y="388" text-anchor="middle" fill="#A78BFA" font-size="12" font-weight="700" font-family="Inter, sans-serif">ESPECIFICACIÓN VERSIONADA</text>
+            <rect x="50" y="405" width="290" height="55" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="195" y="423" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Reglas vinculadas a IDs de experimentos</text>
+            <text x="195" y="438" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Versiones · incertidumbres abiertas</text>
+            <text x="195" y="451" text-anchor="middle" fill="#64748B" font-size="8" font-family="Inter, sans-serif">Cada regla cita hipotesis_id y orden de mensajes</text>
+
+            <!-- ==================== VALIDATION BOX ==================== -->
+            <rect x="390" y="360" width="330" height="120" rx="10" fill="url(#grad-validate)" stroke="rgba(245,158,11,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+            <text x="555" y="388" text-anchor="middle" fill="#F59E0B" font-size="12" font-weight="700" font-family="Inter, sans-serif">SUITE DE VALIDACIÓN</text>
+            <rect x="410" y="405" width="290" height="55" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="555" y="423" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Equivalencia: body · status · headers · orden JSON</text>
+            <text x="555" y="438" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Inter, sans-serif">Errores · payloads · métodos · encoding · latencia</text>
+            <text x="555" y="451" text-anchor="middle" fill="#64748B" font-size="8" font-family="Inter, sans-serif">Conectado al Clasificador de determinismo</text>
+
+            <!-- ==================== REAL TRAFFIC BOX ==================== -->
+            <rect x="740" y="360" width="330" height="120" rx="10" fill="#0f172a" stroke="rgba(99,102,241,0.3)" stroke-width="1.5" filter="url(#shadow)"/>
+            <text x="905" y="388" text-anchor="middle" fill="#6366F1" font-size="12" font-weight="700" font-family="Inter, sans-serif">TRÁFICO REAL</text>
+            <rect x="760" y="405" width="290" height="55" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="905" y="423" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Cliente / Tests Frontier</text>
+            <text x="905" y="443" text-anchor="middle" fill="#64748B" font-size="8" font-family="Inter, sans-serif">Sin conexión al original ni a investigación</text>
+
+            <!-- ==================== REFERENCES ==================== -->
+            <rect x="30" y="560" width="150" height="32" rx="6" fill="#151b2b" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <text x="105" y="580" text-anchor="middle" fill="#E2E8F0" font-size="10" font-family="Inter, sans-serif">Referencias guardadas</text>
+
+            <!-- ==================== MIDDLE ARROWS ==================== -->
+            <!-- experimentos.jsonl → Especificación -->
+            <line x1="195" y1="282" x2="195" y2="360" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrow-purple)"/>
+            <text x="205" y="325" text-anchor="start" fill="#6366F1" font-size="9" font-family="Inter, sans-serif">especificación derivada</text>
+
+            <!-- Especificación → Replacement (carril superior del gap) -->
+            <path d="M 360 360 L 360 312 L 700 312 L 700 305" fill="none" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrow-purple)"/>
+            <text x="500" y="300" text-anchor="middle" fill="#6366F1" font-size="9" font-family="Inter, sans-serif">reglas de comportamiento</text>
+
+            <!-- Investigación de estado → Estado (carril medio del gap) -->
+            <path d="M 122 241 L 122 328 L 980 328 L 980 182" fill="none" stroke="#6366F1" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow-purple)"/>
+            <text x="550" y="322" text-anchor="middle" fill="#6366F1" font-size="8" font-family="Inter, sans-serif">modelo de estado derivado</text>
+
+            <!-- Clasificador → Validation -->
+            <path d="M 275 192 L 275 352 L 555 352 L 555 360" fill="none" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow)"/>
+            <text x="450" y="346" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Inter, sans-serif">criterios de comparación</text>
+
+            <!-- Fuzzer → Validation (fuzzing differential) -->
+            <path d="M 122 192 L 122 357 L 555 357 L 555 360" fill="none" stroke="#F59E0B" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow)"/>
+            <text x="320" y="350" text-anchor="middle" fill="#F59E0B" font-size="8" font-family="Inter, sans-serif">entradas generadas (fuzzing)</text>
+
+            <!-- Validation → Analizador (divergencias) -->
+            <path d="M 555 480 L 555 545 L 275 545 L 275 192" fill="none" stroke="#EF4444" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow-red)"/>
+            <text x="380" y="540" text-anchor="middle" fill="#EF4444" font-size="8" font-family="Inter, sans-serif">divergencias → refinamiento</text>
+
+            <!-- References → Validation -->
+            <path d="M 180 576 L 555 576 L 555 480" fill="none" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/>
+            <text x="370" y="568" text-anchor="middle" fill="#94A3B8" font-size="9" font-family="Inter, sans-serif">referencias guardadas</text>
+
+            <!-- Validation → Replacement (carril inferior del gap) -->
+            <path d="M 720 360 L 720 344 L 800 344 L 800 305" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arrow)"/>
+            <text x="760" y="336" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Inter, sans-serif">pruebas de validación</text>
+
+            <!-- Real Traffic → Replacement -->
+            <line x1="905" y1="360" x2="905" y2="255" stroke="#6366F1" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+            <text x="920" y="310" text-anchor="start" fill="#6366F1" font-size="9" font-family="Inter, sans-serif">POST /msg (tráfico real)</text>
+
+            <!-- ==================== LEGEND ==================== -->
+            <rect x="30" y="600" width="1040" height="35" rx="6" fill="#0f172a" stroke="rgba(148,163,184,0.1)" stroke-width="1"/>
+            <circle cx="55" cy="617" r="5" fill="#6366F1"/><text x="68" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Investigación</text>
+            <circle cx="175" cy="617" r="5" fill="#F59E0B"/><text x="188" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Servicio original</text>
+            <circle cx="340" cy="617" r="5" fill="#10B981"/><text x="353" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Reemplazo</text>
+            <circle cx="470" cy="617" r="5" fill="#F59E0B"/><text x="483" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Validación</text>
+            <circle cx="590" cy="617" r="5" fill="#8B5CF6"/><text x="603" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Especificación</text>
+            <line x1="700" y1="617" x2="730" y2="617" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow)"/><text x="740" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Flujo de datos</text>
+            <line x1="860" y1="617" x2="890" y2="617" stroke="#6366F1" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arrow)"/><text x="900" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Especificación</text>
+            <line x1="990" y1="617" x2="1020" y2="617" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4 2"/><text x="1030" y="620" fill="#94A3B8" font-size="10" font-family="Inter, sans-serif">Barrera</text>
+          </svg>
+        </div>
+
+        <p>Este diagrama se renderiza nativamente como SVG inline. <strong>No requiere conexión a internet</strong> ni librerías externas.</p>
+      </section>
+
+      <!-- 5.5 Diseño del sistema -->
+      <section id="diseno">
+        <h2><span class="section-tag">Sección 05</span><br>Diseño del sistema</h2>
+
+        <h3>Decisiones arquitectónicas iniciales</h3>
+
+        <div class="card">
+          <div class="card-title">ADR-01 · Separación entre investigación y ejecución</div>
+          <p>El entorno de fuzzing y el reemplazo desplegado deben ser código completamente separado. Esto garantiza que el reemplazo nunca llame al original por accidente o diseño.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ADR-02 · Modularidad para refinamiento de reglas</div>
+          <p>Cada comando (PING, ALTA, TRANSFER, etc.) se implementa como módulo independiente. Si un experimento refuta nuestra comprensión de ALTA, solo ese módulo se modifica sin afectar el resto.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ADR-03 · Aislamiento del acceso al servicio original</div>
+          <p>El reemplazo se prueba en un entorno sin conectividad de red al original. Si falla, hay una dependencia oculta que debe eliminarse.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ADR-04 · Pruebas diferenciales</div>
+          <p>La validación principal no es "¿funciona?" sino "¿responde exactamente igual que el original?". Se compara byte a byte para secuencias de referencia.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ADR-05 · Trazabilidad de decisiones</div>
+          <p>Cada regla en la especificación vincula al menos un experimento (<code>id</code> de <code>experimentos.jsonl</code>). Sin evidencia, la regla se marca como <span class="badge badge-proposed">Propuesto</span> o <span class="badge badge-pending">Supuesto</span>.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ADR-06 · Distinguir confirmado de hipótesis</div>
+          <p>Los comportamientos se clasifican en <strong>confirmado</strong> (repetible), <strong>probable</strong> (observado una vez o inferido) y <strong>supuesto</strong> (no probado, comportamiento por defecto).</p>
+        </div>
+
+        <h3>Responsabilidades de cada componente</h3>
+        <ul>
+          <li><strong>Router:</strong> expone endpoints del contrato (<code>/health</code>, <code>/__reset</code>, <code>/msg</code>). Delega parseo y ejecución.</li>
+          <li><strong>Parser:</strong> divide el mensaje por separador, normaliza case, valida aridad por comando.</li>
+          <li><strong>Validador:</strong> verifica formato del campo de control (checksum/dígito verificador). Pendiente de descubrir.</li>
+          <li><strong>Motor:</strong> ejecuta la lógica de negocio contra el estado actual del token.</li>
+          <li><strong>Estado:</strong> diccionario en memoria (<code>dict[token, TokenState]</code>). Persiste solo durante la vida del proceso.</li>
+          <li><strong>Gestor de errores:</strong> catalogo de códigos E201–E507 con status y mensaje exacto.</li>
+        </ul>
+
+        <h3>Flujo de procesamiento</h3>
+        <pre><code>Request → Router → Parser → Validador → Motor → Estado → Respuesta
+                      ↓           ↓
+               Error parse   Error validación
+                      ↓           ↓
+               Respuesta exacta de error</code><button class="copy-btn" onclick="copyCode(this)">Copiar</button></pre>
+
+        <h3>Manejo de errores</h3>
+        <p>El orden de evaluación de errores es crítico y aún <span class="badge badge-pending">Pendiente de validar</span>. Propuesta:</p>
+        <ol>
+          <li>Comando desconocido → E301</li>
+          <li>Aridad inválida → E302</li>
+          <li>Control mal formado (no numérico) → E201</li>
+          <li>Control inválido (numérico pero valor erróneo) → E202</li>
+          <li>Cuenta inexistente → E401</li>
+          <li>Límite excedido / saldo insuficiente → E506 / E507</li>
+        </ol>
+
+        <h3>Consideraciones de seguridad</h3>
+        <ul>
+          <li>Autenticación por <code>Authorization: Bearer &lt;token&gt;</code>. El reemplazo debe replicar este comportamiento sin inventar tokens.</li>
+          <li>Rate limit: 10 req/s, 8000/día. El reemplazo no aplica rate limit propio (la evaluación no lo menciona), pero debe ser capaz de soportar la carga.</li>
+          <li>El reemplazo no realiza requests salientes: verificar con inspección de tráfico.</li>
+        </ul>
+
+        <h3>Riesgos y decisiones pendientes</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Riesgo / Decisión</th><th>Impacto</th><th>Estado</th></tr>
+            <tr><td>Algoritmo del dígito de control</td><td>Alto</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>Valor exacto del límite de transferencia</td><td>Medio</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>Orden exacto de evaluación de errores</td><td>Alto</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+            <tr><td>¿El estado es por token o global?</td><td>Alto</td><td><span class="badge badge-proposed">Propuesto</span></td></tr>
+            <tr><td>Formato exacto de mensajes de error (trailing spaces)</td><td>Medio</td><td><span class="badge badge-pending">Pendiente</span></td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5.6 Diagrama de secuencia -->
+      <section id="secuencia">
+        <h2><span class="section-tag">Sección 06</span><br>Diagrama de secuencia</h2>
+
+        <h3>Investigación: un experimento</h3>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant I as Investigador
+    participant E as Ejecutor
+    participant S as Servicio original
+    participant C as Capturador
+    participant A as Analizador
+    participant SP as Especificación
+
+    I->>E: Define entrada de prueba
+    E->>S: POST /msg (request)
+    S-->>E: Response (status + body)
+    E->>C: Registra request/response
+    C->>A: Envía resultado
+    A->>A: Compara con experimentos previos
+    alt Evidencia suficiente
+        A->>SP: Actualiza regla
+    else Más datos necesarios
+        A->>I: Sugiere nuevo experimento
+    end
+        </div>
+
+        <h3>Reemplazo: atención de una solicitud</h3>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant CL as Cliente/Test
+    participant R as Router
+    participant P as Parser
+    participant V as Validador
+    participant M as Motor
+    participant ST as Estado
+
+    CL->>R: POST /msg with JSON body
+    R->>P: parse(msg string)
+    P->>P: split semicolons, validate arity
+    P-->>R: structured command
+    R->>V: validate control digit
+    V-->>R: command validated
+    R->>M: execute(token, command)
+    M->>ST: read or write state
+    ST-->>M: state result
+    M-->>R: formatted response
+    R-->>CL: HTTP status + JSON body
+    Note right of R: No external calls to original service
+        </div>
+      </section>
+
+      <!-- 5.7 Estrategia de ingeniería inversa -->
+      <section id="ingenieria">
+        <h2><span class="section-tag">Sección 07</span><br>Estrategia de ingeniería inversa</h2>
+
+        <p>Procedimiento incremental de siete fases. No se generaliza de una sola observación.</p>
+
+        <h3>Fase 1. Reconocimiento</h3>
+        <ul>
+          <li>Revisar material oficial (README, ejemplos, reglas de evaluación).</li>
+          <li>Identificar cómo ejecutar el servicio original: URL, autenticación, endpoints.</li>
+          <li>Determinar protocolo y mecanismo de comunicación.</li>
+          <li>Establecer entorno reproducible: scripts, token, reset entre secuencias.</li>
+        </ul>
+
+        <h3>Fase 2. Casos de referencia</h3>
+        <ul>
+          <li>Reproducir los 20 ejemplos proporcionados exactamente.</li>
+          <li>Registrar respuestas completas: status, headers, body, latencia.</li>
+          <li>Registrar errores, timeouts, cierres de conexión si aplica.</li>
+          <li>Repetir experimentos para identificar determinismo o variabilidad.</li>
+        </ul>
+
+        <h3>Fase 3. Exploración sistemática</h3>
+        <ul>
+          <li>Variación <strong>un parámetro a la vez</strong>.</li>
+          <li>Probar: valores vacíos, límites, tipos inesperados, entradas malformadas.</li>
+          <li>Desarrollar scripts y fuzzers propios.</li>
+          <li>Investigar casos límite sin depender de herramientas automáticas.</li>
+        </ul>
+
+        <h3>Fase 4. Formulación de hipótesis</h3>
+        <ul>
+          <li>Documentar patrones observados.</li>
+          <li>Diseñar experimentos que <strong>distingan</strong> entre hipótesis competidoras.</li>
+          <li>Ejemplo: ¿el control es suma de dígitos, suma ponderada de ASCII, o checksum propietario?</li>
+        </ul>
+
+        <h3>Fase 5. Especificación</h3>
+        <ul>
+          <li>Traducir hallazgos en reglas verificables.</li>
+          <li>Identificar ambigüedades explícitamente.</li>
+          <li>Relacionar cada regla con evidencia de <code>experimentos.jsonl</code>.</li>
+        </ul>
+
+        <h3>Fase 6. Validación</h3>
+        <ul>
+          <li>Comparar reemplazo con referencias registradas.</li>
+          <li>Corregir divergencias byte a byte.</li>
+          <li>Ejecutar pruebas de regresión tras cada cambio.</li>
+        </ul>
+
+        <h3>Fase 7. Preparación para entrega</h3>
+        <ul>
+          <li>Comprobar independencia del original (sin requests salientes).</li>
+          <li>Verificar despliegue accesible.</li>
+          <li>Confirmar formatos de entregables contra README oficial.</li>
+        </ul>
+
+        <h3>Flujo de fases</h3>
+        <div class="mermaid">
+flowchart LR
+    A["1. Reconocimiento"] --> B["2. Casos de referencia"]
+    B --> C["3. Exploración sistemática"]
+    C --> D["4. Formulación de hipótesis"]
+    D --> E["5. Especificación"]
+    E --> F["6. Validación"]
+    F --> G["7. Preparación entrega"]
+    F -->|divergencia| C
+    D -->|hipótesis inválida| C
+        </div>
+
+        <h3>Reglas de oro</h3>
+        <ol>
+          <li><strong>Un cambio por experimento.</strong> Si mutás dos cosas y falla, no sabés cuál causó el cambio.</li>
+          <li><strong>Reset antes de cada secuencia.</strong> El estado es enemigo de la reproducibilidad.</li>
+          <li><strong>Loguear todo.</strong> Un experimento no logueado es un experimento no hecho.</li>
+          <li><strong>No generalizar de N=1.</strong> Repetí al menos 3 veces.</li>
+          <li><strong>Ruido vs señal.</strong> Diferencias de timestamps = ruido. Diferencias de saldo = señal.</li>
+        </ol>
+      </section>
+
+      <!-- 5.8 Especificación del comportamiento -->
+      <section id="especificacion">
+        <h2><span class="section-tag">Sección 08</span><br>Especificación del comportamiento</h2>
+
+        <p>Plantilla técnica para documentar el contrato descubierto. Cada fila se completará con evidencia de <code>experimentos.jsonl</code>.</p>
+
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>ID</th>
+              <th>Entrada o condición</th>
+              <th>Comportamiento observado</th>
+              <th>Respuesta esperada</th>
+              <th>Evidencia</th>
+              <th>Confianza</th>
+              <th>Estado</th>
+            </tr>
+            <tr>
+              <td>SPEC-001</td>
+              <td>PING con control válido</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-002</td>
+              <td>ALTA con control válido</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-003</td>
+              <td>CONSULTA cuenta existente</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-004</td>
+              <td>CONSULTA cuenta inexistente</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-005</td>
+              <td>DEPOSITO con control válido</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-006</td>
+              <td>TRANSFER con saldo suficiente</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-007</td>
+              <td>TRANSFER con límite excedido</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-008</td>
+              <td>TRANSFER saldo insuficiente</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-009</td>
+              <td>ANULA operación activa</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-010</td>
+              <td>ANULA operación ya anulada</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-011</td>
+              <td>Control mal formado (no numérico)</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>E201</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-012</td>
+              <td>Control numérico inválido</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>E202</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-013</td>
+              <td>Comando desconocido</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>E301</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>SPEC-014</td>
+              <td>Aridad inválida</td>
+              <td><code>[Pendiente de experimentar]</code></td>
+              <td>E302</td>
+              <td>—</td>
+              <td>—</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+          </table>
+        </div>
+
+        <h3>Secciones por documentar</h3>
+        <ul>
+          <li><strong>Formato de entrada:</strong> protocolo, método, ruta, headers, cuerpo.</li>
+          <li><strong>Formato de salida:</strong> estructura JSON, códigos HTTP, orden de claves.</li>
+          <li><strong>Reglas de validación:</strong> aridad, control, tipos, rangos.</li>
+          <li><strong>Reglas de procesamiento:</strong> lógica de cada comando.</li>
+          <li><strong>Comportamientos dependientes del estado:</strong> memoria entre requests.</li>
+          <li><strong>Errores:</strong> cada código con status, body, orden de evaluación.</li>
+          <li><strong>Casos límite:</strong> valores extremos, vacíos, inesperados.</li>
+          <li><strong>Determinismo:</strong> ¿las respuestas son consistentes entre repeticiones?</li>
+          <li><strong>Preguntas pendientes:</strong> ambigüedades no resueltas.</li>
+        </ul>
+      </section>
+
+      <!-- 5.9 Registro de experimentos -->
+      <section id="experimentos">
+        <h2><span class="section-tag">Sección 09</span><br>Registro de experimentos</h2>
+
+        <p>Formato obligatorio para cada entrada de <code>experimentos.jsonl</code>.</p>
+
+        <h3>Plantilla de experimento</h3>
+        <pre><code>{
+  "id": 1,
+  "seq": "s1",
+  "x_req": 1,
+  "hipotesis": "PING responde sin estado",
+  "request": { "m": "PING;XX" },
+  "status": 200,
+  "response": { "pong": true },
+  "conclusion": "responde pong aunque el último campo no sea un número"
+}</code><button class="copy-btn" onclick="copyCode(this)">Copiar</button></pre>
+
+        <h3>Campos obligatorios</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Campo</th><th>Descripción</th></tr>
+            <tr><td><code>id</code></td><td>Número de línea, único en todo el log</td></tr>
+            <tr><td><code>seq</code></td><td>Identificador de la secuencia (tras un reset)</td></tr>
+            <tr><td><code>x_req</code></td><td>Valor del header <code>X-Req</code> de la respuesta</td></tr>
+            <tr><td><code>hipotesis</code></td><td>Qué se estaba probando con este request</td></tr>
+            <tr><td><code>request</code></td><td>Cuerpo exacto enviado</td></tr>
+            <tr><td><code>status</code></td><td>Status HTTP exacto recibido</td></tr>
+            <tr><td><code>response</code></td><td>Cuerpo exacto recibido</td></tr>
+            <tr><td><code>conclusion</code></td><td>Qué se aprendió. Opcional pero recomendado.</td></tr>
+          </table>
+        </div>
+
+        <h3>Tabla de resumen</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>ID</th><th>Objetivo</th><th>Estado</th><th>Conclusión</th><th>Regla</th></tr>
+            <tr><td>—</td><td>—</td><td><span class="badge badge-pending">Pendiente</span></td><td>—</td><td>—</td></tr>
+          </table>
+        </div>
+
+        <div class="warning-box">
+          <span class="icon">🚫</span>
+          <div>
+            <p><strong>No inventar resultados.</strong> Toda entrada en este log debe corresponder a un experimento real contra el servicio original. Distinguir claramente entre <strong>datos capturados</strong> (respuesta exacta) y <strong>conclusiones del investigador</strong> (interpretación).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5.10 Estrategia de pruebas -->
+      <section id="pruebas">
+        <h2><span class="section-tag">Sección 10</span><br>Estrategia de pruebas</h2>
+
+        <h3>Categorías de pruebas</h3>
+
+        <div class="card">
+          <div class="card-title">1. Pruebas de referencia</div>
+          <p>Reproducir exactamente los 20 ejemplos del material oficial. Secuencia completa tras <code>POST /__reset</code>. Comparar status y body.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">2. Pruebas de equivalencia diferencial</div>
+          <p>Dada una secuencia de requests: ejecutar contra original → capturar. Ejecutar contra reemplazo → capturar. Comparar diff.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">3. Pruebas de regresión</div>
+          <p>Conjunto de secuencias que pasaron en versiones anteriores del reemplazo. Se ejecutan en CI o antes de cada commit.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">4. Pruebas de casos límite</div>
+          <p>Monto cero, negativo, muy grande. Nombres vacíos, con espacios, unicode. Transferencia entre misma cuenta. Anulación de operación ya anulada.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">5. Pruebas de errores</div>
+          <p>Cada código de error (E201–E507) debe tener al menos un test que lo dispare. Verificar status exacto y body exacto.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">6. Pruebas de entradas malformadas</div>
+          <p>JSON sin campo <code>m</code>, campo <code>m</code> vacío, caracteres no-ASCII en comando, separadores faltantes o extra.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">7. Pruebas de independencia</div>
+          <p>Ejecutar reemplazo sin conectividad de red. Verificar que no hace requests salientes (inspección de tráfico, mock de socket).</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">8. Pruebas de despliegue</div>
+          <p><code>GET /health</code> responde 200. <code>POST /__reset</code> limpia estado. Reemplazo responde en &lt; 5 segundos por request.</p>
+        </div>
+
+        <h3>Política de comparación</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Tipo de dato</th><th>Política</th></tr>
+            <tr><td>Ambos JSON</td><td>Claves en cualquier orden, arrays en orden, strings/numbers idénticos</td></tr>
+            <tr><td>Alguno no es JSON</td><td>Comparación carácter por carácter exacta</td></tr>
+            <tr><td>Status HTTP</td><td>Debe ser idéntico</td></tr>
+            <tr><td>Headers</td><td>No se comparan en evaluación oficial</td></tr>
+          </table>
+        </div>
+
+        <h3>Cobertura conceptual</h3>
+        <p>No presentamos porcentajes ficticios. La cobertura se mide en:</p>
+        <ul>
+          <li>Comandos distintos testeados / comandos conocidos.</li>
+          <li>Códigos de error disparados / códigos conocidos.</li>
+          <li>Secuencias de estado testeadas / comportamientos de estado identificados.</li>
+        </ul>
+        <p>Inicialmente: <strong>0% confirmada</strong>. La cobertura crece con cada experimento.</p>
+      </section>
+
+      <!-- 5.11 Despliegue -->
+      <section id="despliegue">
+        <h2><span class="section-tag">Sección 11</span><br>Despliegue y ejecución</h2>
+
+        <div class="success-box">
+          <span class="icon">🚀</span>
+          <div>
+            <p><strong>Desplegado.</strong> El reemplazo está activo en <code>https://caja-negra-replacement.vercel.app</code>. Todos los 20 ejemplos del repositorio pasan contra la instancia remota.</p>
+          </div>
+        </div>
+
+        <h3>Requisitos</h3>
+        <ul>
+          <li>Python 3.12+</li>
+          <li>FastAPI + Mangum (para serverless) + uvicorn (para local)</li>
+          <li>Sin dependencias de red al servicio original</li>
+        </ul>
+
+        <h3>Instalación</h3>
+        <pre><code>pip install -r requirements.txt</code><button class="copy-btn" onclick="copyCode(this)">Copiar</button></pre>
+
+        <h3>Configuración</h3>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Variable</th><th>Valor</th><th>Descripción</th></tr>
+            <tr><td><code>PORT</code></td><td><code>8000</code></td><td>Puerto de escucha (local)</td></tr>
+            <tr><td><code>Authorization</code></td><td><code>Bearer &lt;token&gt;</code></td><td>Header obligatorio en <code>/msg</code>, <code>/__reset</code></td></tr>
+          </table>
+        </div>
+
+        <h3>Ejecución local</h3>
+        <pre><code>uvicorn src.main:app --host 0.0.0.0 --port 8000</code><button class="copy-btn" onclick="copyCode(this)">Copiar</button></pre>
+
+        <h3>Verificación de salud</h3>
+        <ul>
+          <li><code>GET /health</code> responde <code>200 OK</code> (confirmado).</li>
+          <li><code>POST /__reset</code> limpia el estado por token (confirmado).</li>
+          <li><code>POST /msg</code> con JSON <code>{"m": "COMANDO;...;control"}</code> (20/20 ejemplos reproducidos).</li>
+        </ul>
+
+        <h3>Independencia del servicio original</h3>
+        <div class="warning-box">
+          <span class="icon">🔒</span>
+          <div>
+            <p><strong>Crítico.</strong> El reemplazo debe poder iniciarse y funcionar en una máquina sin acceso a internet. Verificar con <code>iptables -A OUTPUT -d &lt;ip-original&gt; -j DROP</code> o equivalente.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5.12 Riesgos -->
+      <section id="riesgos">
+        <h2><span class="section-tag">Sección 12</span><br>Riesgos y mitigaciones</h2>
+
+        <div class="table-wrap">
+          <table>
+            <tr>
+              <th>Riesgo</th>
+              <th>Impacto</th>
+              <th>Mitigación</th>
+              <th>Estado</th>
+            </tr>
+            <tr>
+              <td>Cobertura insuficiente de entradas</td>
+              <td>Alto</td>
+              <td>Fuzzing sistemático, variar un parámetro a la vez, usar múltiples tokens en paralelo</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Falsas conclusiones de pocos experimentos</td>
+              <td>Alto</td>
+              <td>Regla: no generalizar de N=1. Repetir 3 veces. Marcar confianza como probable/supuesto</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Comportamientos dependientes del estado</td>
+              <td>Alto</td>
+              <td>Reset antes de cada secuencia. Secuencias controladas de 2–12 requests. Comparar saldos</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Respuestas no deterministas</td>
+              <td>Medio</td>
+              <td>Repetir secuencias idénticas. Si difieren, documentar como variable y buscar causas</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Errores no reproducibles consistentemente</td>
+              <td>Medio</td>
+              <td>Loguear condiciones exactas. Distinguir errores de infraestructura vs. errores del servicio</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Diferencias sutiles de formato</td>
+              <td>Medio</td>
+              <td>Comparación byte a byte, no solo lógica. Verificar espacios trailing, orden de claves JSON</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Tiempo limitado para exploración</td>
+              <td>Alto</td>
+              <td>Priorizar fuzzing de alta información (control, aridad, límites). Automatizar regresión</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+            <tr>
+              <td>Despliegue incompatible con entorno de evaluación</td>
+              <td>Alto</td>
+              <td>Deploy temprano en plataforma similar (Railway). Probar entrypoint en /evento antes del deadline</td>
+              <td><span class="badge badge-pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>Servicio original cambia durante el día</td>
+              <td>Alto</td>
+              <td>Monitorear con health_check periódico. Versionar capturas. Ajustar reemplazo si hay diffs</td>
+              <td><span class="badge badge-proposed">Mitigación propuesta</span></td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5.13 Entregables -->
+      <section id="entregables">
+        <h2><span class="section-tag">Sección 13</span><br>Seguimiento de entregables</h2>
+
+        <div class="warning-box">
+          <span class="icon">📋</span>
+          <div>
+            <p><strong>Los entregables y sus formatos definitivos deben verificarse contra el README oficial del reto antes de la entrega.</strong></p>
+          </div>
+        </div>
+
+        <ul class="checklist">
+          <li><div class="check-box"></div><div><strong>Reemplazo implementado</strong><br><span style="color:var(--text-muted); font-size:13px">Código del servicio que replica el comportamiento original</span></div></li>
+          <li><div class="check-box"></div><div><strong>Reemplazo desplegado</strong><br><span style="color:var(--text-muted); font-size:13px">Accesible por internet con entrypoint registrado en /evento</span></div></li>
+          <li><div class="check-box"></div><div><strong>Especificación del comportamiento</strong><br><span style="color:var(--text-muted); font-size:13px">Documento con reglas, evidencia y nivel de confianza (docs/specification.md)</span></div></li>
+          <li><div class="check-box"></div><div><strong>Registro de experimentos</strong><br><span style="color:var(--text-muted); font-size:13px">Archivo experimentos.jsonl con una línea por request al original</span></div></li>
+          <li><div class="check-box"></div><div><strong>Pruebas de equivalencia</strong><br><span style="color:var(--text-muted); font-size:13px">Suite que compara reemplazo vs. referencias capturadas</span></div></li>
+          <li><div class="check-box"></div><div><strong>Verificación de independencia</strong><br><span style="color:var(--text-muted); font-size:13px">Confirmar que el reemplazo no realiza requests al servicio original</span></div></li>
+          <li><div class="check-box"></div><div><strong>Instrucciones de ejecución</strong><br><span style="color:var(--text-muted); font-size:13px">Cómo instalar, configurar y ejecutar el reemplazo localmente</span></div></li>
+          <li><div class="check-box"></div><div><strong>Validación de formatos oficiales</strong><br><span style="color:var(--text-muted); font-size:13px">Revisar que spec, experimentos y código cumplen los formatos del README oficial</span></div></li>
+        </ul>
+
+        <h3>Próximos pasos</h3>
+        <ol>
+          <li>Comenzar fase de fuzzing contra el servicio original.</li>
+          <li>Completar <code>experimentos.jsonl</code> con evidencia real.</li>
+          <li>Actualizar <code>docs/specification.md</code> con comportamientos confirmados.</li>
+          <li>Implementar reemplazo basado en especificación validada.</li>
+          <li>Ejecutar pruebas de equivalencia y corregir divergencias.</li>
+          <li>Desplegar y registrar entrypoint en <code>/evento</code>.</li>
+        </ol>
+      </section>
+
+      <footer class="footer">
+        <p>Black Box — Behavioral Replication · Frontier Lab10 · Reto 2</p>
+        <p style="margin-top:4px;">Documentación v1.0 · Fase 1 · System Design & Discovery · Estado: Documentación inicial creada</p>
+        <p style="margin-top:8px; color: var(--text-muted);">
+          ⚠️ Los diagramas Mermaid requieren conexión a Internet para renderizar desde el CDN.
+          El diagrama SVG de arquitectura funciona sin conexión.
+        </p>
+      </footer>
+    </main>
+
+    <aside class="right-toc" id="rightToc">
+      <div class="right-toc-title">En esta página</div>
+    </aside>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#6366F1',
+        primaryTextColor: '#E2E8F0',
+        primaryBorderColor: '#6366F1',
+        lineColor: '#94A3B8',
+        secondaryColor: '#1a2332',
+        tertiaryColor: '#151b2b',
+        background: '#0B0F19',
+        mainBkg: '#151b2b',
+        secondBkg: '#1a2332',
+        nodeBorder: 'rgba(148,163,184,0.2)',
+        clusterBkg: 'rgba(99,102,241,0.08)',
+        clusterBorder: 'rgba(99,102,241,0.2)',
+        titleColor: '#E2E8F0',
+        edgeLabelBackground: '#0B0F19',
+        nodeTextColor: '#E2E8F0'
+      },
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis'
+      },
+      sequence: {
+        useMaxWidth: true,
+        wrap: true
+      }
+    });
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.querySelector('.sidebar-overlay').classList.toggle('open');
+    }
+
+    function copyCode(btn) {
+      const pre = btn.parentElement;
+      const code = pre.querySelector('code');
+      navigator.clipboard.writeText(code.innerText).then(() => {
+        btn.textContent = '¡Copiado!';
+        setTimeout(() => btn.textContent = 'Copiar', 2000);
+      });
+    }
+
+    const sections = document.querySelectorAll('section[id]');
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    const rightToc = document.getElementById('rightToc');
+
+    sections.forEach(section => {
+      const h2 = section.querySelector('h2');
+      if (!h2) return;
+      const link = document.createElement('a');
+      link.href = '#' + section.id;
+      link.textContent = h2.textContent.replace(/^Sección \d+\s*/, '').replace(/\n/g, ' ').trim();
+      link.dataset.target = section.id;
+      rightToc.appendChild(link);
+    });
+
+    const rightLinks = rightToc.querySelectorAll('a');
+
+    function onScroll() {
+      let current = '';
+      const scrollPos = window.scrollY + 100;
+      sections.forEach(section => {
+        if (section.offsetTop <= scrollPos) {
+          current = section.id;
+        }
+      });
+
+      sidebarLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      });
+
+      rightLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.target === current);
+      });
+    }
+
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (href === '#') return;
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) {
+          window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
+          document.getElementById('sidebar').classList.remove('open');
+          document.querySelector('.sidebar-overlay').classList.remove('open');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
