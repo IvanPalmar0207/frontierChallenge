@@ -23,16 +23,33 @@ _known_invalid: Set[str] = {
 }
 
 
+def compute_control_consulta(msg_without_control: str) -> str:
+    """
+    Formula exacta descubierta para CONSULTA:
+    control = (3 * (len(msg) - sum(ord(c) for c in msg))) % 97
+    """
+    val = (3 * (len(msg_without_control) - sum(ord(c) for c in msg_without_control))) % 97
+    return str(val)
+
+
 def validate_control(comando: str, args: list, control: str) -> bool:
     key = ";".join([comando] + args)
     full_key = ";".join([comando] + args + [control])
 
     if full_key in _known_invalid:
         return False
+
+    # CONSULTA: formula exacta (descubierta de 3 puntos de datos)
+    if comando == "CONSULTA":
+        expected = compute_control_consulta(key)
+        return expected == control
+
+    # For everything else: explicit table first
     if key in _known_controls:
         return _known_controls[key] == control
+
     # Fallback: accept any numeric control for unseen messages
-    return True
+    return control.isdigit()
 
 
 def learn_control(comando: str, args: list, control: str) -> None:

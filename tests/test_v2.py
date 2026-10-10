@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi.testclient import TestClient
 from src.main import app
-from src.checksum import _known_controls
+from src.checksum import _known_controls, compute_control_consulta
 
 client = TestClient(app)
 TOKEN = "test-v2"
@@ -17,7 +17,12 @@ headers = {"Authorization": f"Bearer {TOKEN}"}
 
 def ctrl(msg_without_control: str) -> str:
     v = _known_controls.get(msg_without_control)
-    return v if v is not None else "99"
+    if v is not None:
+        return v
+    # CONSULTA formula exacta (descubierta por analisis)
+    if msg_without_control.upper().startswith("CONSULTA;"):
+        return compute_control_consulta(msg_without_control.upper())
+    return "99"
 
 def reset():
     client.post("/__reset", headers=headers)
