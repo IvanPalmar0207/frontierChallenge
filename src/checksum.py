@@ -48,8 +48,13 @@ def validate_control(comando: str, args: list, control: str) -> bool:
     if key in _known_controls:
         return _known_controls[key] == control
 
-    # Fallback: accept any numeric control for unseen messages
-    return control.isdigit()
+    # Fallback: accept numeric control for unseen messages
+    # Reject non-numeric, empty, or >2 digit controls (reduces false positives)
+    if comando == "PING":
+        return True  # PING accepts any control
+    if not control or not control.isdigit() or len(control) > 2:
+        return False
+    return True
 
 
 def learn_control(comando: str, args: list, control: str) -> None:

@@ -62,6 +62,11 @@ async def msg_endpoint(request: Request, authorization: Optional[str] = Header(N
         return JSONResponse(content=body, status_code=status)
 
     msg = body.get("m", "")
+    if not isinstance(msg, str):
+        if msg is None:
+            msg = ""
+        else:
+            msg = str(msg)
     comando, args, control_or_error = parse_message(msg)
     if comando is None:
         body, status = error_response(control_or_error)

@@ -38,7 +38,11 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
 
     if comando == "DEPOSITO":
         cuenta_id = args[0]
-        monto = int(args[1])
+        try:
+            monto = int(args[1])
+        except Exception:
+            body, status = error_response("E201")
+            return body, status
         if cuenta_id not in state.cuentas:
             body, status = error_response("E401")
             return body, status
@@ -52,7 +56,11 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
     if comando == "TRANSFER":
         origen = args[0]
         destino = args[1]
-        monto = int(args[2])
+        try:
+            monto = int(args[2])
+        except Exception:
+            body, status = error_response("E201")
+            return body, status
 
         if origen not in state.cuentas or destino not in state.cuentas:
             body, status = error_response("E401")
