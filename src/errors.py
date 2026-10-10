@@ -1,9 +1,11 @@
 ERROR_CODES = {
+    "E001": (401, "no autorizado"),
     "E201": (400, "control mal formado"),
     "E202": (400, "control inválido"),
     "E301": (400, "comando desconocido "),
     "E302": (400, "aridad inválida"),
     "E401": (404, "cuenta inexistente"),
+    "E404": (404, "ruta desconocida"),
     "E506": (422, "límite excedido"),
     "E507": (422, "saldo insuficiente"),
 }
