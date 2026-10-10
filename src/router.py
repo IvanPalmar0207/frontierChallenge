@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 from typing import Optional
 from src.models import MsgRequest
@@ -6,6 +6,8 @@ from src.parser import parse_message
 from src.engine import process_command
 from src.state import reset_state
 from src.errors import error_response
+# Rate limiting disabled for now — not confirmed by examples
+# from src.ratelimit import check_rate
 
 router = APIRouter()
 
