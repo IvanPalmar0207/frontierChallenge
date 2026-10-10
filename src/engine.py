@@ -1,7 +1,7 @@
 from typing import Tuple, Dict, Any
 from src.state import get_state, Cuenta, Operacion
 from src.errors import error_response
-from src.checksum import validate_control
+from src.checksum import validate_control, learn_control
 
 def process_command(token: str, comando: str, args: list, control: str) -> Tuple[Dict[str, Any], int]:
     """
@@ -16,6 +16,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
         return body, status
 
     if comando == "PING":
+        # PING accepts any numeric control; do not learn it
         return {"pong": True}, 200
 
     if comando == "ALTA":
@@ -23,6 +24,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
         cuenta_id = f"AC-{state.next_cuenta:04d}"
         state.next_cuenta += 1
         state.cuentas[cuenta_id] = Cuenta(cuenta_id, nombre)
+        learn_control(comando, args, control)
         return {"cuentaId": cuenta_id}, 201
 
     if comando == "CONSULTA":
@@ -31,6 +33,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
             body, status = error_response("E401")
             return body, status
         cuenta = state.cuentas[cuenta_id]
+        learn_control(comando, args, control)
         return {"cuenta_id": cuenta.cuenta_id, "saldo": cuenta.saldo}, 200
 
     if comando == "DEPOSITO":
@@ -43,6 +46,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
         op_id = f"OP-{state.next_op:04d}"
         state.next_op += 1
         state.operaciones[op_id] = Operacion(op_id, "DEPOSITO", cuenta_id, "", monto)
+        learn_control(comando, args, control)
         return {"status": "recieved", "operacionId": op_id}, 200
 
     if comando == "TRANSFER":
@@ -69,6 +73,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
         op_id = f"OP-{state.next_op:04d}"
         state.next_op += 1
         state.operaciones[op_id] = Operacion(op_id, "TRANSFER", origen, destino, monto)
+        learn_control(comando, args, control)
         return {"status": "recieved", "operacionId": op_id}, 200
 
     if comando == "ANULA":
@@ -85,6 +90,7 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
             state.cuentas[op.cuenta_destino].saldo -= op.monto
         elif op.tipo == "DEPOSITO":
             state.cuentas[op.cuenta_origen].saldo -= op.monto
+        learn_control(comando, args, control)
         return {"ok": True, "anulada": op_id}, 200
 
     return error_response("E301")
