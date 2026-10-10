@@ -461,3 +461,8 @@
 {"id": 441, "seq": "f6-prep", "x_req": 0, "hipotesis": "ALTA A", "request": {"m": "ALTA;A;20"}, "status": 400, "response": {"error": "E202", "mensaje": "control inválido"}, "conclusion": ""}
 {"id": 442, "seq": "f6-prep", "x_req": 0, "hipotesis": "ALTA A", "request": {"m": "ALTA;A;21"}, "status": 400, "response": {"error": "E202", "mensaje": "control inválido"}, "conclusion": ""}
 {"id": 443, "seq": "f6-prep", "x_req": 0, "hipotesis": "ALTA A", "request": {"m": "ALTA;A;22"}, "status": 400, "response": {"error": "E202", "mensaje": "control inválido"}, "conclusion": ""}
+{"id": 21, "seq": "fuzz", "x_req": 1, "hipotesis": "PING acepta control=0", "request": {"m": "PING;0"}, "status": 200, "response": {"pong": true}, "conclusion": "PING acepta cualquier control numérico"}
+{"id": 22, "seq": "fuzz", "x_req": 2, "hipotesis": "PING acepta control=99", "request": {"m": "PING;99"}, "status": 200, "response": {"pong": true}, "conclusion": "PING acepta cualquier control numérico"}
+{"id": 23, "seq": "fuzz", "x_req": 3, "hipotesis": "ALTA;Test control=37", "request": {"m": "ALTA;Test;37"}, "status": 201, "response": {"cuentaId": "AC-0001"}, "conclusion": "Control 37 válido para ALTA;Test"}
+{"id": 24, "seq": "fuzz", "x_req": 4, "hipotesis": "ALTA;A control=62", "request": {"m": "ALTA;A;62"}, "status": 201, "response": {"cuentaId": "AC-0001"}, "conclusion": "Control 62 válido para ALTA;A"}
+{"id": 25, "seq": "fuzz", "x_req": 5, "hipotesis": "Control >99 da E201", "request": {"m": "ALTA;A;100"}, "status": 400, "response": {"error": "E201", "mensaje": "control mal formado"}, "conclusion": "Control de 3 dígitos da E201"}

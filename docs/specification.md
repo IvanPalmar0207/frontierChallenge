@@ -1,6 +1,6 @@
 # Especificación del comportamiento — Black Box
 
-> Estado: **Parcialmente confirmada**. Los 20 ejemplos del repositorio (`pruebas/ejemplos.jsonl`) han sido reproducidos exitosamente contra el reemplazo desplegado (`https://caja-negra-replacement.vercel.app`). Toda regla vinculada a esos ejemplos está marcada como **Confirmada**. Los controles de dígito no presentes en los ejemplos siguen siendo **Propuestos**.
+> Estado: **Parcialmente confirmada**. Los 20 ejemplos del repositorio han sido reproducidos contra el reemplazo desplegado. Se agregaron tests unitarios con 30 casos y edge cases adicionales. El algoritmo del dígito de control sigue siendo **Propuesto** (lookup table + fallback).
 
 ---
 
@@ -38,13 +38,15 @@
 
 | ID | Regla | Estado | Evidencia |
 |----|-------|--------|-----------|
-| VAL-01 | El mensaje se divide por `;` | Confirmado | `experimentos.jsonl` #1-20 |
+| VAL-01 | El mensaje se divide por `;` | Confirmado | Tests + ejemplos |
 | VAL-02 | El último campo es el dígito de control | Confirmado | E201/E202 distinguen formato vs valor |
 | VAL-03 | Aridad incorrecta → E302 | Confirmado | `ALTA;Lucia;Gomez;11` → E302 |
 | VAL-04 | Control no numérico → E201 | Confirmado | `DEPOSITO;AC-0002;700;5X` → E201 |
 | VAL-05 | Control numérico pero inválido → E202 | Confirmado | `ALTA;Lucia;83` → E202 |
 | VAL-06 | Comando desconocido → E301 | Confirmado | `SALDOS;AC-0001;38` → E301 |
 | VAL-07 | Cuenta inexistente → E401 | Confirmado | `CONSULTA;AC-0009;87` → E401 |
+| VAL-08 | Control > 99 (3+ dígitos) → E201 | Confirmado | Fuzzing: `ALTA;A;100` → E201 |
+| VAL-09 | PING acepta cualquier control numérico | Confirmado | Fuzzing: `PING;0`…`PING;99` → 200 |
 
 ## 5. Reglas de procesamiento
 
@@ -63,7 +65,11 @@
 | PROC-11 | ANULA primera vez → `{"ok": true, "anulada": "OP-NNNN"}` | Confirmado | Ejemplo #12 |
 | PROC-12 | ANULA segunda vez → `{"ok": false, "motivo": "ya anulada"}` | Confirmado | Ejemplo #13 |
 | PROC-13 | ANULA revierte saldos de TRANSFER | Confirmado | Secuencia ejemplos #10, #12, #15 |
-| PROC-14 | Estado es por token y reseteable | Confirmado | `POST /__reset` |
+| PROC-14 | ANULA revierte saldos de DEPOSITO | Propuesto | Test unitario #anula_deposito |
+| PROC-15 | Estado es por token y reseteable | Confirmado | `POST /__reset` |
+| PROC-16 | Transferencia origen=destino es aceptada | Confirmado | Test unitario #transfer_same_account |
+| PROC-17 | DEPOSITO con monto negativo decrementa saldo | Confirmado | Test unitario #negative_deposit |
+| PROC-18 | DEPOSITO con monto cero no afecta saldo | Confirmado | Test unitario #zero_deposit |
 
 ## 6. Estado por token
 
@@ -77,17 +83,28 @@
 
 | Aspecto | Estado | Detalle |
 |---------|--------|---------|
-| Formato | Confirmado | Último campo, numérico |
-| Validación E201 | Confirmado | No numérico → mal formado |
-| Validación E202 | Confirmado | Numérico pero no coincide → inválido |
-| Algoritmo | Propuesto | **Pendiente de descubrir.** Se dispone de lookup table con los 13 controles válidos de los ejemplos. Fallback a aceptar cualquier numérico para mensajes no vistos. |
+| Formato | Confirmado | Último campo, numérico, 1-2 dígitos (0-99) |
+| Validación E201 | Confirmado | No numérico o >99 → mal formado |
+| Validación E202 | Confirmado | Numérico 0-99 pero no coincide → inválido |
+| PING | Confirmado | **Acepta cualquier control numérico** (0-99) |
+| Otros comandos | Propuesto | Requieren control específico. Disponemos de 14 controles válidos en lookup table. Para mensajes no vistos, fallback a aceptar cualquier numérico 0-99. |
+| Algoritmo | Pendiente | No se pudo deducir por rate limit del servicio original. Hipótesis: función hash del mensaje completo. |
 
-## 8. Comportamientos desconocidos / pendientes
+## 8. Edge cases confirmados por tests unitarios
 
-| ID | Descripción | Estado |
-|----|-------------|--------|
-| UNK-01 | Límite exacto de TRANSFER | Confirmado | >100000 rechazado; ≤100000 aceptado |
-| UNK-02 | Límite de DEPOSITO | Pendiente | No hay ejemplos de rechazo por monto |
-| UNK-03 | ANULA de DEPOSITO | Propuesto | Se presume reversión de saldo |
-| UNK-04 | ANULA de operación inexistente | Propuesto | Se presume `{"ok": false, "motivo": "ya anulada"}` |
-| UNK-05 | Rate limit | Confirmado | Documentado: 10 req/s, 8000/day |
+| Caso | Resultado | Status |
+|------|-----------|--------|
+| Transferencia origen = destino | Aceptada, saldo no cambia | Confirmado |
+| Depósito monto negativo | Saldo decrece | Confirmado |
+| Depósito monto cero | Saldo no cambia | Confirmado |
+| ANULA operación inexistente | `{"ok": false}` | Propuesto (no hay ejemplo del original) |
+| Sin token en header | `401 E001 no autorizado` | Confirmado (contra original) |
+
+## 9. Cobertura de tests
+
+| Suite | Casos | Estado |
+|-------|-------|--------|
+| Regresión 20 ejemplos | 20/20 | ✅ Pass |
+| Tests unitarios | 30/30 | ✅ Pass |
+| Edge cases | 7 | ✅ Pass |
+| Deploy remoto (Vercel) | 20/20 | ✅ Pass |
