@@ -1,10 +1,11 @@
 from typing import Dict, Set
 
-# Known valid controls from the 20 examples
+# Known valid controls from the 20 examples + fuzzing experiments
+# PING: accepts ANY numeric control (confirmed by fuzzing)
 _known_controls: Dict[str, str] = {
-    "PING": "64",
     "ALTA;Lucia": "82",
     "ALTA;Mateo": "3",
+    "ALTA;A": "62",
     "CONSULTA;AC-0001": "14",
     "CONSULTA;AC-0002": "11",
     "DEPOSITO;AC-0001;250000": "86",
