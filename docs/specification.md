@@ -1,6 +1,6 @@
 # Especificación del comportamiento — Black Box
 
-> Estado: **Parcialmente confirmada**. Los 20 ejemplos del repositorio han sido reproducidos contra el reemplazo desplegado. Se agregaron tests unitarios con 30 casos y edge cases adicionales. El algoritmo del dígito de control sigue siendo **Propuesto** (lookup table + fallback).
+> Estado: **Parcialmente confirmada**. Los 20 ejemplos del repositorio han sido reproducidos contra el reemplazo desplegado en Railway (proceso persistente). Se agregaron tests unitarios con 30 casos y edge cases adicionales. El algoritmo del dígito de control sigue siendo **Propuesto** (lookup table + fallback).
 
 ---
 
