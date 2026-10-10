@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Header, Request, Body
 from fastapi.responses import JSONResponse
 from typing import Optional
-from src.models import MsgRequest
 from src.parser import parse_message
 from src.engine import process_command
 from src.state import reset_state
@@ -11,7 +10,6 @@ router = APIRouter()
 
 
 def _extract_token(auth_header: Optional[str]) -> str:
-    """Extrae el token del header Authorization."""
     if not auth_header:
         return ""
     parts = auth_header.split()
@@ -21,15 +19,13 @@ def _extract_token(auth_header: Optional[str]) -> str:
 
 
 def _auth_error():
-    """Respuesta 401 E001 cuando falta o es inválido el token."""
     body, status = error_response("E001")
     return JSONResponse(content=body, status_code=status)
 
 
 @router.get("/health")
 def health(authorization: Optional[str] = Header(None)):
-    token = _extract_token(authorization)
-    if not token:
+    if not _extract_token(authorization):
         return _auth_error()
     return {"ok": True}
 
@@ -44,22 +40,22 @@ def reset(authorization: Optional[str] = Header(None)):
 
 
 @router.post("/msg")
-def msg_endpoint(request: MsgRequest, authorization: Optional[str] = Header(None)):
+def msg_endpoint(body: dict = Body(...), authorization: Optional[str] = Header(None)):
     token = _extract_token(authorization)
     if not token:
         return _auth_error()
 
-    comando, args, control_or_error = parse_message(request.m)
+    msg = body.get("m", "")
+    comando, args, control_or_error = parse_message(msg)
     if comando is None:
         body, status = error_response(control_or_error)
         return JSONResponse(content=body, status_code=status)
 
-    body, status = process_command(token, comando, args, control_or_error)
-    return JSONResponse(content=body, status_code=status)
+    result, status = process_command(token, comando, args, control_or_error)
+    return JSONResponse(content=result, status_code=status)
 
 
 @router.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
-def catch_all(path: str, request: Request, authorization: Optional[str] = Header(None)):
-    """Cualquier ruta no definida: 404 E404 como el servicio original."""
+def catch_all(path: str, request: Request):
     body, status = error_response("E404")
     return JSONResponse(content=body, status_code=status)

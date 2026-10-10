@@ -62,8 +62,6 @@ def process_command(token: str, comando: str, args: list, control: str) -> Tuple
             body, status = error_response("E507")
             return body, status
 
-        # Límite de transferencia (pendiente de descubrir valor exacto)
-        # Los ejemplos: 120000 rechazado, 100000 aceptado
         if monto > 100000:
             body, status = error_response("E506")
             return body, status
