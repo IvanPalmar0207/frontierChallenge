@@ -1,0 +1,702 @@
+[
+  {
+    "cat": "FACIL",
+    "msg": "PING;64",
+    "status": 200,
+    "body": "{\"pong\":true}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Lucia;83",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Lucia;82",
+    "status": 201,
+    "body": "{\"cuentaId\":\"AC-0001\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Mateo;3",
+    "status": 201,
+    "body": "{\"cuentaId\":\"AC-0002\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0001;14",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0001\",\"saldo\":0}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "DEPOSITO;AC-0001;250000;86",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0001\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;40000;86",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0002\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0002;11",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0002\",\"saldo\":40000}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;120000;55",
+    "status": 422,
+    "body": "{\"error\":\"E506\",\"mensaje\":\"límite excedido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;100000;12",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0003\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTa;AC-0001;14",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0001\",\"saldo\":110000}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "SALDOS;AC-0001;38",
+    "status": 400,
+    "body": "{\"error\":\"E301\",\"mensaje\":\"comando desconocido \"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ANULA;OP-0003;66",
+    "status": 200,
+    "body": "{\"ok\":true,\"anulada\":\"OP-0003\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ANULA;OP-0003;66",
+    "status": 200,
+    "body": "{\"ok\":false,\"motivo\":\"ya anulada\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0009;87",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0002;AC-0001;50000;23",
+    "status": 422,
+    "body": "{\"error\":\"E507\",\"mensaje\":\"saldo insuficiente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "DEPOSITO;AC-0002;700;5X",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "DEPOSITO;AC-0002;700;35",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0004\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0002;11",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0002\",\"saldo\":40700}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Lucia;Gomez;11",
+    "status": 400,
+    "body": "{\"error\":\"E302\",\"mensaje\":\"aridad inválida\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "PING;0",
+    "status": 200,
+    "body": "{\"pong\":true}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "PING;99",
+    "status": 200,
+    "body": "{\"pong\":true}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0001;14",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0001\",\"saldo\":210000}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0002;11",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0002\",\"saldo\":40700}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTa;AC-0001;14",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0001\",\"saldo\":210000}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "CONSULTA;AC-0009;87",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Lucia;82",
+    "status": 201,
+    "body": "{\"cuentaId\":\"AC-0003\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Mateo;3",
+    "status": 201,
+    "body": "{\"cuentaId\":\"AC-0004\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "DEPOSITO;AC-0001;250000;86",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0005\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;40000;86",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0006\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;120000;55",
+    "status": 422,
+    "body": "{\"error\":\"E506\",\"mensaje\":\"límite excedido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;100000;12",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0007\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ANULA;OP-0003;66",
+    "status": 200,
+    "body": "{\"ok\":false,\"motivo\":\"ya anulada\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ANULA;OP-0003;66",
+    "status": 200,
+    "body": "{\"ok\":false,\"motivo\":\"ya anulada\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "TRANSFER;AC-0002;AC-0001;50000;23",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0008\"}",
+    "note": "FAIL(exp=422)"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "DEPOSITO;AC-0002;700;5X",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "DEPOSITO;AC-0002;700;35",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0009\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "SALDOS;AC-0001;38",
+    "status": 400,
+    "body": "{\"error\":\"E301\",\"mensaje\":\"comando desconocido \"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Lucia;83",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "FACIL",
+    "msg": "ALTA;Lucia;Gomez;11",
+    "status": 400,
+    "body": "{\"error\":\"E302\",\"mensaje\":\"aridad inválida\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Juan;81",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Pedro;14",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Maria;3",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Ana;94",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Luis;35",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Carmen;31",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Jose;28",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ALTA;Diana;17",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;100;94",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;500;13",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;1000;86",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;5000;94",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;10000;69",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;50000;11",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;75000;75",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "DEPOSITO;AC-0001;99000;54",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;1000;4",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;5000;3",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;10000;11",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;20000;27",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;30000;29",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;40000;64",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;50000;77",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;60000;3",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "GOT_400"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0003;8",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0004;5",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0005;2",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0010;14",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0011;11",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0020;11",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0100;14",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0999;33",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "PING;0",
+    "status": 200,
+    "body": "{\"pong\":true}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "PING;1",
+    "status": 200,
+    "body": "{\"pong\":true}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0001;14",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0001\",\"saldo\":250000}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "CONSULTA;AC-0002;11",
+    "status": 200,
+    "body": "{\"cuenta_id\":\"AC-0002\",\"saldo\":700}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0001;AC-0002;120000;55",
+    "status": 422,
+    "body": "{\"error\":\"E506\",\"mensaje\":\"límite excedido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "TRANSFER;AC-0002;AC-0001;50000;23",
+    "status": 422,
+    "body": "{\"error\":\"E507\",\"mensaje\":\"saldo insuficiente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ANULA;OP-0003;66",
+    "status": 200,
+    "body": "{\"ok\":false,\"motivo\":\"ya anulada\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "REGULAR",
+    "msg": "ANULA;OP-0003;66",
+    "status": 200,
+    "body": "{\"ok\":false,\"motivo\":\"ya anulada\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "no body",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "body vacio",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "sin campo m",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "m vacio",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "m null",
+    "status": 400,
+    "body": "{\"error\":\"E201\",\"mensaje\":\"control mal formado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "monto abc",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "monto abc",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "control >2 digitos",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "CONSULTA control mal",
+    "status": 400,
+    "body": "{\"error\":\"E202\",\"mensaje\":\"control inválido\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "comando desconocido",
+    "status": 400,
+    "body": "{\"error\":\"E301\",\"mensaje\":\"comando desconocido \"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "SEQ_10_OK",
+    "status": 200,
+    "body": "",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "ESTADO_AISLADO",
+    "status": 404,
+    "body": "{\"error\":\"E401\",\"mensaje\":\"cuenta inexistente\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "AUTH",
+    "status": 401,
+    "body": "{\"error\":\"E001\",\"mensaje\":\"no autorizado\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "PING;64",
+    "status": 200,
+    "body": "{\"pong\":true}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "ALTA;Lucia;82",
+    "status": 201,
+    "body": "{\"cuentaId\":\"AC-0001\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "ALTA;Mateo;3",
+    "status": 201,
+    "body": "{\"cuentaId\":\"AC-0002\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "DEPOSITO;AC-0001;250000;86",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0001\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "DEPOSITO;AC-0002;700;35",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0002\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;40000;86",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0003\"}",
+    "note": "OK"
+  },
+  {
+    "cat": "DIFICIL",
+    "msg": "TRANSFER;AC-0001;AC-0002;100000;12",
+    "status": 200,
+    "body": "{\"status\":\"recieved\",\"operacionId\":\"OP-0004\"}",
+    "note": "OK"
+  }
+]
