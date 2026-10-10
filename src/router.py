@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Header, Request, Body
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 from typing import Optional
+import json
 from src.parser import parse_message
 from src.engine import process_command
 from src.state import reset_state
@@ -40,10 +41,25 @@ def reset(authorization: Optional[str] = Header(None)):
 
 
 @router.post("/msg")
-def msg_endpoint(body: dict = Body(...), authorization: Optional[str] = Header(None)):
+async def msg_endpoint(request: Request, authorization: Optional[str] = Header(None)):
     token = _extract_token(authorization)
     if not token:
         return _auth_error()
+
+    # Leer body crudo para evitar 422 de FastAPI/Pydantic en body vacio o no-JSON
+    try:
+        body_raw = await request.body()
+        if not body_raw:
+            body, status = error_response("E201")
+            return JSONResponse(content=body, status_code=status)
+        body = json.loads(body_raw)
+    except Exception:
+        body, status = error_response("E201")
+        return JSONResponse(content=body, status_code=status)
+
+    if not isinstance(body, dict) or "m" not in body:
+        body, status = error_response("E201")
+        return JSONResponse(content=body, status_code=status)
 
     msg = body.get("m", "")
     comando, args, control_or_error = parse_message(msg)
