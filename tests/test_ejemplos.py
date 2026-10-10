@@ -13,7 +13,21 @@ client = TestClient(app)
 EJEMPLOS = Path(__file__).parent.parent / "pruebas" / "ejemplos.jsonl"
 TOKEN = "test-token-123"
 
-def run():
+def _compare_json(a, b):
+    if type(a) != type(b):
+        return False
+    if isinstance(a, dict):
+        if set(a.keys()) != set(b.keys()):
+            return False
+        return all(_compare_json(a[k], b[k]) for k in a)
+    if isinstance(a, list):
+        if len(a) != len(b):
+            return False
+        return all(_compare_json(x, y) for x, y in zip(a, b))
+    return a == b
+
+def test_all_20_examples():
+    """Reproduce all 20 examples from pruebas/ejemplos.jsonl sequentially."""
     headers = {"Authorization": f"Bearer {TOKEN}"}
 
     # Reset
@@ -22,6 +36,7 @@ def run():
 
     passed = 0
     failed = 0
+    errors = []
 
     with open(EJEMPLOS, "r", encoding="utf-8") as f:
         for line in f:
@@ -47,28 +62,11 @@ def run():
 
             if match:
                 passed += 1
-                print(f"  PASS: {msg}")
             else:
                 failed += 1
-                print(f"  FAIL: {msg}")
-                print(f"    expected: {expected_status} {expected_body}")
-                print(f"    actual:   {actual_status} {actual_body}")
+                errors.append(f"  FAIL: {msg}\n    expected: {expected_status} {expected_body}\n    actual:   {actual_status} {actual_body}")
 
-    print(f"\n=== Resultado: {passed} pass / {failed} fail ===")
-    return failed == 0
-
-def _compare_json(a, b):
-    if type(a) != type(b):
-        return False
-    if isinstance(a, dict):
-        if set(a.keys()) != set(b.keys()):
-            return False
-        return all(_compare_json(a[k], b[k]) for k in a)
-    if isinstance(a, list):
-        if len(a) != len(b):
-            return False
-        return all(_compare_json(x, y) for x, y in zip(a, b))
-    return a == b
-
-if __name__ == "__main__":
-    run()
+    if errors:
+        print("\n".join(errors))
+    assert failed == 0, f"{failed}/20 ejemplos fallaron"
+    assert passed == 20, f"Solo {passed}/20 pasaron"
